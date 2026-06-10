@@ -2,6 +2,7 @@ package com.example.billboardanalytics.ui;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -55,13 +56,16 @@ public class DeviceDetailActivity extends AppCompatActivity {
         setupChart();
 
         long deviceId = getIntent().getLongExtra(EXTRA_DEVICE_ID, -1);
-        
+
+        if (deviceId == -1) {
+            Log.e("DeviceDetailActivity", "No device ID passed in intent, finishing.");
+            finish();
+            return;
+        }
+
         DeviceDetailViewModel viewModel = new ViewModelProvider(this).get(DeviceDetailViewModel.class);
         viewModel.getDetailData().observe(this, this::populateUI);
-
-        if (deviceId != -1) {
-            viewModel.loadDeviceDetails(deviceId);
-        }
+        viewModel.loadDeviceDetails(deviceId);
     }
 
     @android.annotation.SuppressLint("SetTextI18n")

@@ -121,6 +121,12 @@ public class DeviceDetailViewModel extends AndroidViewModel {
         }
     }
 
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        executor.shutdown();
+    }
+
     public static class DeviceDetailData {
         public String anonymousId;
         public String macAddress;

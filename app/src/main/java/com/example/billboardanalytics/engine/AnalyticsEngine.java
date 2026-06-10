@@ -112,7 +112,9 @@ public class AnalyticsEngine {
                     sourceDistribution.merge("Bluetooth", 1, Integer::sum);
                     
                     // Deterministically categorize based on MAC address for demonstration
-                    int hash = Math.abs(device.deviceIdentifier.hashCode()) % 5;
+                    int hash = device.deviceIdentifier != null
+                            ? Math.abs(device.deviceIdentifier.hashCode()) % 5
+                            : 4;
                     String category;
                     switch (hash) {
                         case 0: category = "Phones"; break;

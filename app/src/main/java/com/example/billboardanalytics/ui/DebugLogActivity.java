@@ -1,5 +1,7 @@
 package com.example.billboardanalytics.ui;
 
+import android.annotation.SuppressLint;
+
 import android.os.Bundle;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -40,6 +42,7 @@ public class DebugLogActivity extends AppCompatActivity {
         findViewById(R.id.btnClearDb).setOnClickListener(v -> clearDatabase());
     }
 
+    @SuppressLint("SetTextI18n")
     private void loadJsonData() {
         executor.execute(() -> {
             try {
@@ -55,16 +58,7 @@ public class DebugLogActivity extends AppCompatActivity {
                     deviceJson.put("last_seen", device.lastSeen);
 
                     List<SessionEntity> sessions = db.analyticsDao().getAllSessionsForDevice(device.id);
-                    JSONArray sessionsArray = new JSONArray();
-                    for (SessionEntity session : sessions) {
-                        JSONObject sessionJson = new JSONObject();
-                        sessionJson.put("session_id", session.id);
-                        sessionJson.put("start_time", session.startTime);
-                        sessionJson.put("end_time", session.endTime);
-                        sessionJson.put("duration_ms", session.duration);
-                        sessionsArray.put(sessionJson);
-                    }
-                    deviceJson.put("sessions", sessionsArray);
+                    deviceJson.put("sessions", createSessionsArray(sessions));
                     jsonArray.put(deviceJson);
                 }
 
@@ -77,6 +71,20 @@ public class DebugLogActivity extends AppCompatActivity {
         });
     }
 
+    private JSONArray createSessionsArray(List<SessionEntity> sessions) throws JSONException {
+        JSONArray sessionsArray = new JSONArray();
+        for (SessionEntity session : sessions) {
+            JSONObject sessionJson = new JSONObject();
+            sessionJson.put("session_id", session.id);
+            sessionJson.put("start_time", session.startTime);
+            sessionJson.put("end_time", session.endTime);
+            sessionJson.put("duration_ms", session.duration);
+            sessionsArray.put(sessionJson);
+        }
+        return sessionsArray;
+    }
+
+    @SuppressLint("SetTextI18n")
     private void clearDatabase() {
         executor.execute(() -> {
             db.clearAllTables();
