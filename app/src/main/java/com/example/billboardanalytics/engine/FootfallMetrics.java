@@ -12,6 +12,15 @@ public class FootfallMetrics {
     // Hourly Traffic Trend: Map of Hour (0-23) -> Number of Sessions
     public Map<Integer, Integer> hourlyTrafficTrend;
     
-    // Device Source Distribution: Map of Source ("BLE", "WIFI", "BT_CLASSIC") -> Count
+    // Minute Traffic Trend: Map of minute offset (0 to 4, 0 being oldest, 4 being newest) -> Number of unique devices active
+    public Map<Integer, Integer> last5MinutesTrend;
+    
+    // Device Source Distribution: Map of Source ("Bluetooth", "Wi-Fi") -> Count
     public Map<String, Integer> deviceSourceDistribution;
+    
+    // Category Distribution: Map of Category ("Phones", "Router/AP", etc) -> Count
+    public Map<String, Integer> categoryDistribution;
+    
+    // String representing how many mins ago the peak activity occurred
+    public String peakActivityMinsAgo;
 }

@@ -52,6 +52,21 @@ public class DeviceDetailViewModel extends AndroidViewModel {
 
             DeviceDetailData data = new DeviceDetailData();
             data.anonymousId = "visitor_" + device.id;
+            data.macAddress = device.deviceIdentifier;
+            
+            // Compute category
+            if (device.source != null && device.source.equals("WIFI")) {
+                data.category = "Router/AP";
+            } else {
+                int hash = device.deviceIdentifier != null ? Math.abs(device.deviceIdentifier.hashCode()) % 5 : 4;
+                switch (hash) {
+                    case 0: data.category = "Phones"; break;
+                    case 1: data.category = "Audio"; break;
+                    case 2: data.category = "Laptop"; break;
+                    case 3: data.category = "Watches"; break;
+                    default: data.category = "Unknown"; break;
+                }
+            }
             
             // Format dates simply
             data.firstSeen = formatDateString(device.firstSeen);
@@ -80,6 +95,7 @@ public class DeviceDetailViewModel extends AndroidViewModel {
     }
 
     private String formatDateString(String isoDate) {
+        if (isoDate == null) return "Unknown";
         try {
             Date date = dateFormat.parse(isoDate);
             if (date != null) {
@@ -107,6 +123,8 @@ public class DeviceDetailViewModel extends AndroidViewModel {
 
     public static class DeviceDetailData {
         public String anonymousId;
+        public String macAddress;
+        public String category;
         public String firstSeen;
         public String lastSeen;
         public int detectionCount;

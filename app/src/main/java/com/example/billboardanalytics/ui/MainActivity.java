@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -12,11 +13,15 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.billboardanalytics.R;
 import com.example.billboardanalytics.engine.FootfallMetrics;
 import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
@@ -36,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView tvCurrentDevices, tvTotalVisitors, tvReturningVisitors, tvAvgDwellTime, tvPeakHour;
     private BarChart hourlyTrafficChart;
+    private LineChart activeDevicesLineChart;
+    private PieChart categoryPieChart;
     private PieChart sourcePieChart;
 
 
@@ -51,10 +58,19 @@ public class MainActivity extends AppCompatActivity {
         tvPeakHour = findViewById(R.id.tvPeakHour);
         
         hourlyTrafficChart = findViewById(R.id.hourlyTrafficChart);
+        activeDevicesLineChart = findViewById(R.id.activeDevicesLineChart);
+        categoryPieChart = findViewById(R.id.categoryPieChart);
         sourcePieChart = findViewById(R.id.sourcePieChart);
 
+        Button btnStartTracker = findViewById(R.id.btnStartTracker);
         Button btnLiveDevices = findViewById(R.id.btnLiveDevices);
+        Button btnExportData = findViewById(R.id.btnExportData);
+        Button btnDebugLog = findViewById(R.id.btnDebugLog);
+
+        btnStartTracker.setOnClickListener(v -> Toast.makeText(this, "Tracker is running in background", Toast.LENGTH_SHORT).show());
         btnLiveDevices.setOnClickListener(v -> startActivity(new Intent(this, NearbyDevicesActivity.class)));
+        btnExportData.setOnClickListener(v -> exportData());
+        btnDebugLog.setOnClickListener(v -> startActivity(new Intent(this, DebugLogActivity.class)));
 
         setupCharts();
 
@@ -140,13 +156,28 @@ public class MainActivity extends AppCompatActivity {
         xAxis.setTextColor(Color.WHITE);
         xAxis.setDrawGridLines(false);
         
-        // Pie Chart Setup
-        sourcePieChart.getDescription().setEnabled(false);
-        sourcePieChart.setDrawHoleEnabled(true);
-        sourcePieChart.setHoleColor(Color.parseColor("#1E1E1E"));
-        sourcePieChart.setTransparentCircleRadius(0f);
-        sourcePieChart.getLegend().setTextColor(Color.WHITE);
-        sourcePieChart.setEntryLabelColor(Color.WHITE);
+        // Line Chart Setup
+        activeDevicesLineChart.getDescription().setEnabled(false);
+        activeDevicesLineChart.getLegend().setTextColor(Color.WHITE);
+        activeDevicesLineChart.getAxisLeft().setTextColor(Color.WHITE);
+        activeDevicesLineChart.getAxisRight().setEnabled(false);
+        XAxis lineXAxis = activeDevicesLineChart.getXAxis();
+        lineXAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        lineXAxis.setTextColor(Color.WHITE);
+        lineXAxis.setDrawGridLines(false);
+
+        // Pie Charts Setup
+        setupPieChart(categoryPieChart);
+        setupPieChart(sourcePieChart);
+    }
+    
+    private void setupPieChart(PieChart chart) {
+        chart.getDescription().setEnabled(false);
+        chart.setDrawHoleEnabled(true);
+        chart.setHoleColor(Color.parseColor("#222222"));
+        chart.setTransparentCircleRadius(0f);
+        chart.getLegend().setTextColor(Color.WHITE);
+        chart.setEntryLabelColor(Color.WHITE);
     }
 
     @android.annotation.SuppressLint("SetTextI18n")
@@ -160,10 +191,12 @@ public class MainActivity extends AppCompatActivity {
         long minutes = metrics.averageDwellTimeMs / (1000 * 60);
         tvAvgDwellTime.setText(minutes + "m");
         
-        tvPeakHour.setText(metrics.peakHour);
+        tvPeakHour.setText(metrics.peakActivityMinsAgo);
 
         updateBarChart(metrics.hourlyTrafficTrend);
-        updatePieChart(metrics.deviceSourceDistribution);
+        updateLineChart(metrics.last5MinutesTrend);
+        updatePieChart(categoryPieChart, metrics.categoryDistribution);
+        updatePieChart(sourcePieChart, metrics.deviceSourceDistribution);
     }
 
     private void updateBarChart(Map<Integer, Integer> hourlyTrend) {
@@ -174,35 +207,78 @@ public class MainActivity extends AppCompatActivity {
         }
 
         BarDataSet dataSet = new BarDataSet(entries, "Visitors per Hour");
-        dataSet.setColor(Color.parseColor("#03DAC6"));
+        dataSet.setColor(Color.parseColor("#B3C4C1"));
         dataSet.setValueTextColor(Color.WHITE);
 
         BarData barData = new BarData(dataSet);
         hourlyTrafficChart.setData(barData);
         hourlyTrafficChart.invalidate();
     }
+    
+    private void updateLineChart(Map<Integer, Integer> minuteTrend) {
+        if (minuteTrend == null) return;
+        
+        List<Entry> entries = new ArrayList<>();
+        // i goes from 0 (5 mins ago) to 4 (now)
+        for (int i = 0; i < 5; i++) {
+            Integer value = minuteTrend.get(i);
+            entries.add(new Entry(i, value == null ? 0 : value));
+        }
 
-    private void updatePieChart(Map<String, Integer> sourceDistribution) {
+        LineDataSet dataSet = new LineDataSet(entries, "Active Devices");
+        dataSet.setColor(Color.parseColor("#FF9800"));
+        dataSet.setValueTextColor(Color.WHITE);
+        dataSet.setLineWidth(2f);
+        dataSet.setCircleColor(Color.parseColor("#FF9800"));
+
+        LineData lineData = new LineData(dataSet);
+        activeDevicesLineChart.setData(lineData);
+        activeDevicesLineChart.invalidate();
+    }
+
+    private void updatePieChart(PieChart chart, Map<String, Integer> distribution) {
+        if (distribution == null) return;
+        
         List<PieEntry> entries = new ArrayList<>();
         int[] colors = new int[]{
-                Color.parseColor("#BB86FC"), // BLE
-                Color.parseColor("#03DAC6"), // WIFI
-                Color.parseColor("#CF6679")  // BT_CLASSIC
+                Color.parseColor("#E91E63"), // Pink
+                Color.parseColor("#FF9800"), // Orange
+                Color.parseColor("#FFC107"), // Yellow
+                Color.parseColor("#4CAF50"), // Green
+                Color.parseColor("#00BCD4")  // Cyan
         };
 
-        for (Map.Entry<String, Integer> entry : sourceDistribution.entrySet()) {
+        for (Map.Entry<String, Integer> entry : distribution.entrySet()) {
             if (entry.getValue() > 0) {
                 entries.add(new PieEntry(entry.getValue(), entry.getKey()));
             }
         }
 
-        PieDataSet dataSet = new PieDataSet(entries, "Sources");
+        PieDataSet dataSet = new PieDataSet(entries, "");
         dataSet.setColors(colors);
         dataSet.setValueTextColor(Color.WHITE);
         dataSet.setValueTextSize(14f);
 
         PieData pieData = new PieData(dataSet);
-        sourcePieChart.setData(pieData);
-        sourcePieChart.invalidate();
+        chart.setData(pieData);
+        chart.invalidate();
+    }
+
+    private void exportData() {
+        String report = "Billboard Analytics Export\n" +
+                "==========================\n" +
+                "Total Visitors Today: " + tvTotalVisitors.getText() + "\n" +
+                "Current Nearby Devices: " + tvCurrentDevices.getText() + "\n" +
+                "Returning Visitors: " + tvReturningVisitors.getText() + "\n" +
+                "Average Dwell Time: " + tvAvgDwellTime.getText() + "\n" +
+                "Peak Hour Activity: " + tvPeakHour.getText() + "\n";
+
+        Intent sendIntent = new Intent();
+        sendIntent.setAction(Intent.ACTION_SEND);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, report);
+        sendIntent.setType("text/plain");
+
+        Intent shareIntent = Intent.createChooser(sendIntent, "Export Analytics Data");
+        startActivity(shareIntent);
     }
 }

@@ -35,7 +35,23 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         NearbyDevice device = devices.get(position);
         holder.tvDeviceId.setText(device.deviceId);
-        holder.tvSource.setText(device.source);
+        
+        // Compute the "Category • Protocol" subtitle
+        String protocol = device.source.equals("WIFI") ? "Wi-Fi" : "Bluetooth";
+        String category = "Unknown";
+        if (device.source.equals("WIFI")) {
+            category = "Router/AP";
+        } else {
+            int hash = Math.abs(device.deviceId.hashCode()) % 5;
+            switch (hash) {
+                case 0: category = "Phones"; break;
+                case 1: category = "Audio"; break;
+                case 2: category = "Laptop"; break;
+                case 3: category = "Watches"; break;
+            }
+        }
+        holder.tvSource.setText(category + " • " + protocol);
+
         holder.tvSignal.setText(device.rssi + " dBm");
         
         if (device.distanceMeters >= 0) {
@@ -47,19 +63,23 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
         holder.tvLastSeen.setText(device.lastSeenText);
         holder.tvStatus.setText(device.status);
 
-        // Color coding for status
+        // Color coding for status badge
         switch (device.status) {
             case "ACTIVE":
-                holder.tvStatus.setTextColor(Color.parseColor("#4CAF50")); // Green
+                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_active); // Green
+                holder.tvStatus.setTextColor(Color.BLACK);
                 break;
             case "IDLE":
-                holder.tvStatus.setTextColor(Color.parseColor("#FFC107")); // Amber
+                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_active); // You can make this amber later
+                holder.tvStatus.setTextColor(Color.BLACK);
                 break;
             case "LEFT":
-                holder.tvStatus.setTextColor(Color.parseColor("#F44336")); // Red
+                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_active); // You can make this red later
+                holder.tvStatus.setTextColor(Color.BLACK);
                 break;
             default:
-                holder.tvStatus.setTextColor(Color.parseColor("#AAAAAA"));
+                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_active);
+                holder.tvStatus.setTextColor(Color.BLACK);
                 break;
         }
 

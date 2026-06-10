@@ -1,70 +1,202 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="HardcodedText,VisualLintSystemWindow"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#121212"
-    android:padding="16dp">
+    android:background="#1E1E1E">
 
-    <TextView
-        android:id="@+id/tvDetailTitle"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Device Details"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#FFFFFF"
-        android:layout_marginBottom="24dp" />
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <GridLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:columnCount="2"
-        android:rowCount="4"
-        android:useDefaultMargins="true"
-        android:layout_marginBottom="24dp">
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+            
+            <ImageView
+                android:id="@+id/btnBack"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@android:drawable/ic_menu_revert"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Back"
+                android:layout_marginEnd="16dp"
+                app:tint="#FFFFFF" />
 
-        <!-- Row 0 -->
-        <TextView android:text="First Seen:" android:textColor="#B0B0B0" />
-        <TextView android:id="@+id/tvFirstSeen" android:textColor="#FFFFFF" android:layout_marginStart="16dp"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Device Profile"
+                android:textSize="26sp"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
 
-        <!-- Row 1 -->
-        <TextView android:text="Last Seen:" android:textColor="#B0B0B0" />
-        <TextView android:id="@+id/tvLastSeen" android:textColor="#FFFFFF" android:layout_marginStart="16dp"/>
+        <!-- Big Header Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="#2D3A38"
+            app:cardCornerRadius="16dp"
+            app:contentPadding="24dp"
+            android:layout_marginBottom="16dp"
+            app:cardElevation="0dp">
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center">
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_menu_mylocation"
+                    app:tint="#B3C4C1"
+                    android:layout_marginBottom="8dp" />
+                
+                <TextView
+                    android:id="@+id/tvDeviceIdHeader"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="--"
+                    android:textColor="#FFFFFF"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+                
+                <TextView
+                    android:id="@+id/tvDeviceCategory"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Unknown"
+                    android:textColor="#B0B0B0"
+                    android:textSize="16sp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
-        <!-- Row 2 -->
-        <TextView android:text="Detections:" android:textColor="#B0B0B0" />
-        <TextView android:id="@+id/tvDetections" android:textColor="#FFFFFF" android:layout_marginStart="16dp"/>
+        <!-- Lifecycle Metrics Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lifecycle Metrics"
+            android:textSize="18sp"
+            android:textColor="#D0D0D0"
+            android:layout_marginBottom="8dp" />
 
-        <!-- Row 3 -->
-        <TextView android:text="Avg RSSI:" android:textColor="#B0B0B0" />
-        <TextView android:id="@+id/tvAvgRssi" android:textColor="#FFFFFF" android:layout_marginStart="16dp"/>
+        <!-- Lifecycle Metrics Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="#222222"
+            app:cardCornerRadius="16dp"
+            android:layout_marginBottom="24dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#333333"
+            app:strokeWidth="1dp">
+            
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp">
 
-        <!-- Row 4 -->
-        <TextView android:text="Sessions:" android:textColor="#B0B0B0" />
-        <TextView android:id="@+id/tvSessions" android:textColor="#FFFFFF" android:layout_marginStart="16dp"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-        <!-- Row 5 -->
-        <TextView android:text="Total Dwell:" android:textColor="#B0B0B0" />
-        <TextView android:id="@+id/tvTotalDwell" android:textColor="#FFFFFF" android:layout_marginStart="16dp"/>
+                    <!-- Row 1 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:baselineAligned="false"
+                        android:layout_marginBottom="16dp">
+                        
+                        <!-- First Seen -->
+                        <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                            <TextView android:text="First Seen" android:textColor="#B0B0B0" android:textSize="12sp" />
+                            <TextView android:id="@+id/tvFirstSeen" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+                        </LinearLayout>
 
-    </GridLayout>
+                        <!-- Last Seen -->
+                        <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                            <TextView android:text="Last Seen" android:textColor="#B0B0B0" android:textSize="12sp" />
+                            <TextView android:id="@+id/tvLastSeen" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+                        </LinearLayout>
+                    </LinearLayout>
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="RSSI vs Time"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="#FFFFFF"
-        android:layout_marginBottom="8dp" />
+                    <!-- Row 2 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:baselineAligned="false"
+                        android:layout_marginBottom="16dp">
+                        
+                        <!-- Detections -->
+                        <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                            <TextView android:text="Detection Count" android:textColor="#B0B0B0" android:textSize="12sp" />
+                            <TextView android:id="@+id/tvDetections" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+                        </LinearLayout>
 
-    <com.github.mikephil.charting.charts.LineChart
-        android:id="@+id/rssiChart"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+                        <!-- Avg RSSI -->
+                        <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                            <TextView android:text="Average RSSI" android:textColor="#B0B0B0" android:textSize="12sp" />
+                            <TextView android:id="@+id/tvAvgRssi" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+                        </LinearLayout>
+                    </LinearLayout>
 
-</LinearLayout>
+                    <!-- Row 3 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:baselineAligned="false">
+                        
+                        <!-- Sessions -->
+                        <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                            <TextView android:text="Session Count" android:textColor="#B0B0B0" android:textSize="12sp" />
+                            <TextView android:id="@+id/tvSessions" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+                        </LinearLayout>
+
+                        <!-- Total Dwell -->
+                        <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                            <TextView android:text="Total Dwell Time" android:textColor="#B0B0B0" android:textSize="12sp" />
+                            <TextView android:id="@+id/tvTotalDwell" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- RSSI Chart Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="RSSI Distance History"
+            android:textSize="18sp"
+            android:textColor="#D0D0D0"
+            android:layout_marginBottom="8dp" />
+
+        <!-- RSSI Chart Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="#222222"
+            app:cardCornerRadius="16dp"
+            android:layout_marginBottom="16dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#333333"
+            app:strokeWidth="1dp">
+            
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp">
+
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/rssiChart"
+                    android:layout_width="match_parent"
+                    android:layout_height="250dp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+</ScrollView>

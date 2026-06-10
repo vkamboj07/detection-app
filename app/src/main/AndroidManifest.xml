@@ -32,7 +32,7 @@
     <application
         android:allowBackup="true"
         android:icon="@android:drawable/sym_def_app_icon"
-        android:label="Billboard Analytics"
+        android:label="Footfall Tracker"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.NoActionBar">
         
@@ -46,6 +46,8 @@
         <activity android:name=".ui.NearbyDevicesActivity" android:exported="false" />
         
         <activity android:name=".ui.DeviceDetailActivity" android:exported="false" />
+        
+        <activity android:name=".ui.DebugLogActivity" android:exported="false" />
         
         <!-- Foreground Service -->
         <service

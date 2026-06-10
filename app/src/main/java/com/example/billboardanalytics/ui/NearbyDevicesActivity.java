@@ -16,6 +16,8 @@ public class NearbyDevicesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_nearby_devices);
 
+        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
+
         RecyclerView rvNearbyDevices = findViewById(R.id.rvNearbyDevices);
         rvNearbyDevices.setLayoutManager(new LinearLayoutManager(this));
         

@@ -77,7 +77,7 @@ public class NearbyDevicesViewModel extends AndroidViewModel {
                     
                     NearbyDevice nd = new NearbyDevice();
                     nd.databaseId = device.id;
-                    nd.deviceId = "visitor_" + device.id;
+                    nd.deviceId = device.deviceIdentifier != null ? device.deviceIdentifier : "Unknown";
                     nd.source = device.source;
                     nd.rssi = latestObs.rssi;
                     nd.distanceMeters = calculateDistance(latestObs.rssi);

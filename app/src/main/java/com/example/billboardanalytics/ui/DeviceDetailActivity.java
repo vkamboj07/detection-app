@@ -27,7 +27,8 @@ import java.util.TimeZone;
 public class DeviceDetailActivity extends AppCompatActivity {
     public static final String EXTRA_DEVICE_ID = "extra_device_id";
 
-    private TextView tvDetailTitle, tvFirstSeen, tvLastSeen, tvDetections, tvAvgRssi, tvSessions, tvTotalDwell;
+    private TextView tvDeviceIdHeader, tvDeviceCategory;
+    private TextView tvFirstSeen, tvLastSeen, tvDetections, tvAvgRssi, tvSessions, tvTotalDwell;
     private LineChart rssiChart;
     private SimpleDateFormat dateFormat;
 
@@ -36,7 +37,10 @@ public class DeviceDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_device_detail);
 
-        tvDetailTitle = findViewById(R.id.tvDetailTitle);
+        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
+
+        tvDeviceIdHeader = findViewById(R.id.tvDeviceIdHeader);
+        tvDeviceCategory = findViewById(R.id.tvDeviceCategory);
         tvFirstSeen = findViewById(R.id.tvFirstSeen);
         tvLastSeen = findViewById(R.id.tvLastSeen);
         tvDetections = findViewById(R.id.tvDetections);
@@ -62,7 +66,9 @@ public class DeviceDetailActivity extends AppCompatActivity {
 
     @android.annotation.SuppressLint("SetTextI18n")
     private void populateUI(DeviceDetailViewModel.DeviceDetailData data) {
-        tvDetailTitle.setText("Device: " + data.anonymousId);
+        tvDeviceIdHeader.setText(data.macAddress);
+        tvDeviceCategory.setText(data.category);
+        
         tvFirstSeen.setText(data.firstSeen);
         tvLastSeen.setText(data.lastSeen);
         tvDetections.setText(String.valueOf(data.detectionCount));
@@ -84,9 +90,15 @@ public class DeviceDetailActivity extends AppCompatActivity {
         XAxis xAxis = rssiChart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setTextColor(Color.WHITE);
-        xAxis.setDrawGridLines(false);
+        xAxis.setDrawGridLines(true);
+        xAxis.setGridColor(Color.parseColor("#333333"));
+        xAxis.setGridLineWidth(1f);
 
         rssiChart.getAxisLeft().setTextColor(Color.WHITE);
+        rssiChart.getAxisLeft().setDrawGridLines(true);
+        rssiChart.getAxisLeft().setGridColor(Color.parseColor("#333333"));
+        rssiChart.getAxisLeft().setGridLineWidth(1f);
+        
         rssiChart.getAxisRight().setEnabled(false);
     }
 
@@ -94,7 +106,14 @@ public class DeviceDetailActivity extends AppCompatActivity {
         if (observations == null || observations.isEmpty()) return;
 
         // Ensure chronological order
-        List<ObservationEntity> sorted = new ArrayList<>(observations);
+        List<ObservationEntity> sorted = new ArrayList<>();
+        for (ObservationEntity obs : observations) {
+            if (obs.timestamp != null) {
+                sorted.add(obs);
+            }
+        }
+        if (sorted.isEmpty()) return;
+        
         sorted.sort(Comparator.comparing(o -> o.timestamp));
 
         long baseTime = parseTimestamp(sorted.get(0).timestamp);
@@ -108,7 +127,7 @@ public class DeviceDetailActivity extends AppCompatActivity {
 
         LineDataSet dataSet = new LineDataSet(entries, "RSSI (dBm)");
         dataSet.setColor(Color.parseColor("#BB86FC"));
-        dataSet.setCircleColor(Color.parseColor("#03DAC6"));
+        dataSet.setCircleColor(Color.parseColor("#BB86FC"));
         dataSet.setLineWidth(2f);
         dataSet.setCircleRadius(3f);
         dataSet.setDrawValues(false);
@@ -119,6 +138,7 @@ public class DeviceDetailActivity extends AppCompatActivity {
     }
 
     private long parseTimestamp(String timestamp) {
+        if (timestamp == null) return 0;
         try {
             Date date = dateFormat.parse(timestamp);
             return date != null ? date.getTime() : 0;
