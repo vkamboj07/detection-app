@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="HardcodedText,VisualLintSystemWindow"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#121212"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/tvDetailTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Device Details"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="24dp" />
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:columnCount="2"
+        android:rowCount="4"
+        android:useDefaultMargins="true"
+        android:layout_marginBottom="24dp">
+
+        <!-- Row 0 -->
+        <TextView android:text="First Seen:" android:textColor="#B0B0B0" />
+        <TextView android:id="@+id/tvFirstSeen" android:textColor="#FFFFFF" android:layout_marginStart="16dp"/>
+
+        <!-- Row 1 -->
+        <TextView android:text="Last Seen:" android:textColor="#B0B0B0" />
+        <TextView android:id="@+id/tvLastSeen" android:textColor="#FFFFFF" android:layout_marginStart="16dp"/>
+
+        <!-- Row 2 -->
+        <TextView android:text="Detections:" android:textColor="#B0B0B0" />
+        <TextView android:id="@+id/tvDetections" android:textColor="#FFFFFF" android:layout_marginStart="16dp"/>
+
+        <!-- Row 3 -->
+        <TextView android:text="Avg RSSI:" android:textColor="#B0B0B0" />
+        <TextView android:id="@+id/tvAvgRssi" android:textColor="#FFFFFF" android:layout_marginStart="16dp"/>
+
+        <!-- Row 4 -->
+        <TextView android:text="Sessions:" android:textColor="#B0B0B0" />
+        <TextView android:id="@+id/tvSessions" android:textColor="#FFFFFF" android:layout_marginStart="16dp"/>
+
+        <!-- Row 5 -->
+        <TextView android:text="Total Dwell:" android:textColor="#B0B0B0" />
+        <TextView android:id="@+id/tvTotalDwell" android:textColor="#FFFFFF" android:layout_marginStart="16dp"/>
+
+    </GridLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="RSSI vs Time"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="8dp" />
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/rssiChart"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+</LinearLayout>
