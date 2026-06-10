@@ -45,7 +45,10 @@
         
         <activity android:name=".ui.NearbyDevicesActivity" android:exported="false" />
         
-        <activity android:name=".ui.DeviceDetailActivity" android:exported="false" />
+        <activity android:name=".ui.DeviceDetailActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:parentActivityName=".ui.NearbyDevicesActivity" />
         
         <activity android:name=".ui.DebugLogActivity" android:exported="false" />
         

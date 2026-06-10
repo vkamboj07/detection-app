@@ -1,11 +1,11 @@
 package com.example.billboardanalytics.ui;
 
+import android.annotation.SuppressLint;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.content.Intent;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -18,7 +18,17 @@ import java.util.Locale;
 
 public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapter.ViewHolder> {
     private List<NearbyDevice> devices = new ArrayList<>();
+    private OnDeviceClickListener clickListener;
 
+    public interface OnDeviceClickListener {
+        void onDeviceClick(long databaseId);
+    }
+
+    public void setOnDeviceClickListener(OnDeviceClickListener listener) {
+        this.clickListener = listener;
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
     public void setDevices(List<NearbyDevice> newDevices) {
         this.devices = newDevices;
         notifyDataSetChanged();
@@ -31,10 +41,10 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
         return new ViewHolder(view);
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        NearbyDevice device = devices.get(position);
-        holder.tvDeviceId.setText(device.deviceId);
+        NearbyDevice device = devices.get(position);        holder.tvDeviceId.setText(device.deviceId);
         
         // Compute the "Category • Protocol" subtitle
         String protocol = device.source.equals("WIFI") ? "Wi-Fi" : "Bluetooth";
@@ -65,17 +75,13 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
 
         // Color coding for status badge
         switch (device.status) {
-            case "ACTIVE":
-                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_active); // Green
-                holder.tvStatus.setTextColor(Color.BLACK);
-                break;
             case "IDLE":
-                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_active); // You can make this amber later
-                holder.tvStatus.setTextColor(Color.BLACK);
+                holder.tvStatus.setBackgroundColor(Color.parseColor("#FFA000")); // Amber
+                holder.tvStatus.setTextColor(Color.WHITE);
                 break;
             case "LEFT":
-                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_active); // You can make this red later
-                holder.tvStatus.setTextColor(Color.BLACK);
+                holder.tvStatus.setBackgroundColor(Color.parseColor("#C62828")); // Red
+                holder.tvStatus.setTextColor(Color.WHITE);
                 break;
             default:
                 holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_active);
@@ -84,12 +90,11 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
         }
 
         holder.itemView.setOnClickListener(v -> {
-            Intent intent = new Intent(v.getContext(), DeviceDetailActivity.class);
-            intent.putExtra(DeviceDetailActivity.EXTRA_DEVICE_ID, device.databaseId);
-            v.getContext().startActivity(intent);
+            if (clickListener != null) {
+                clickListener.onDeviceClick(device.databaseId);
+            }
         });
     }
-
     @Override
     public int getItemCount() {
         return devices.size();

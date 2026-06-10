@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.billboardanalytics.R;
+import com.example.billboardanalytics.data.AppDatabase;
 import com.example.billboardanalytics.engine.FootfallMetrics;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
@@ -45,6 +46,9 @@ public class MainActivity extends AppCompatActivity {
     private PieChart categoryPieChart;
     private PieChart sourcePieChart;
 
+    private boolean isTracking = false;
+    private Button btnStartTracker;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,12 +66,12 @@ public class MainActivity extends AppCompatActivity {
         categoryPieChart = findViewById(R.id.categoryPieChart);
         sourcePieChart = findViewById(R.id.sourcePieChart);
 
-        Button btnStartTracker = findViewById(R.id.btnStartTracker);
+        btnStartTracker = findViewById(R.id.btnStartTracker);
         Button btnLiveDevices = findViewById(R.id.btnLiveDevices);
         Button btnExportData = findViewById(R.id.btnExportData);
         Button btnDebugLog = findViewById(R.id.btnDebugLog);
 
-        btnStartTracker.setOnClickListener(v -> Toast.makeText(this, "Tracker is running in background", Toast.LENGTH_SHORT).show());
+        btnStartTracker.setOnClickListener(v -> toggleTracker());
         btnLiveDevices.setOnClickListener(v -> startActivity(new Intent(this, NearbyDevicesActivity.class)));
         btnExportData.setOnClickListener(v -> exportData());
         btnDebugLog.setOnClickListener(v -> startActivity(new Intent(this, DebugLogActivity.class)));
@@ -143,6 +147,43 @@ public class MainActivity extends AppCompatActivity {
     private void startScannerService() {
         Intent serviceIntent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
         startForegroundService(serviceIntent);
+        isTracking = true;
+        updateTrackerButton();
+    }
+
+    private void stopScannerService() {
+        Intent serviceIntent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
+        stopService(serviceIntent);
+        isTracking = false;
+        updateTrackerButton();
+    }
+
+    private void toggleTracker() {
+        if (isTracking) {
+            stopScannerService();
+        } else {
+            // Start a new session: Clear data and start service
+            AppDatabase db = AppDatabase.getDatabase(this);
+            java.util.concurrent.Executors.newSingleThreadExecutor().execute(() -> {
+                db.clearAllTables();
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Previous data cleared. New tracking session started.", Toast.LENGTH_LONG).show();
+                    startScannerService();
+                });
+            });
+        }
+    }
+
+    private void updateTrackerButton() {
+        if (isTracking) {
+            btnStartTracker.setText("Stop Tracker");
+            btnStartTracker.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#CF6679")));
+            btnStartTracker.setTextColor(android.graphics.Color.WHITE);
+        } else {
+            btnStartTracker.setText("Start Tracker");
+            btnStartTracker.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#B3C4C1")));
+            btnStartTracker.setTextColor(android.graphics.Color.parseColor("#1E1E1E"));
+        }
     }
 
     private void setupCharts() {

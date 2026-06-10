@@ -5,7 +5,8 @@
     tools:ignore="HardcodedText,VisualLintSystemWindow"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1E1E1E">
+    android:background="#1E1E1E"
+    android:fitsSystemWindows="true">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -23,8 +24,9 @@
             
             <ImageView
                 android:id="@+id/btnBack"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="8dp"
                 android:src="@android:drawable/ic_menu_revert"
                 android:clickable="true"
                 android:focusable="true"
@@ -54,6 +56,7 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:src="@android:drawable/ic_menu_mylocation"
+                    android:contentDescription="Device Category Icon"
                     app:tint="#B3C4C1"
                     android:layout_marginBottom="8dp" />
                 
@@ -98,13 +101,8 @@
             
             <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp">
 
+                <!-- Row 1 -->
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <!-- Row 1 -->
-                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
@@ -113,14 +111,14 @@
                         
                         <!-- First Seen -->
                         <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
-                            <TextView android:text="First Seen" android:textColor="#B0B0B0" android:textSize="12sp" />
-                            <TextView android:id="@+id/tvFirstSeen" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="First Seen" android:textColor="#B0B0B0" android:textSize="12sp" />
+                            <TextView android:id="@+id/tvFirstSeen" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
                         </LinearLayout>
 
                         <!-- Last Seen -->
                         <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
-                            <TextView android:text="Last Seen" android:textColor="#B0B0B0" android:textSize="12sp" />
-                            <TextView android:id="@+id/tvLastSeen" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Last Seen" android:textColor="#B0B0B0" android:textSize="12sp" />
+                            <TextView android:id="@+id/tvLastSeen" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
                         </LinearLayout>
                     </LinearLayout>
 
@@ -134,14 +132,14 @@
                         
                         <!-- Detections -->
                         <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
-                            <TextView android:text="Detection Count" android:textColor="#B0B0B0" android:textSize="12sp" />
-                            <TextView android:id="@+id/tvDetections" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Detection Count" android:textColor="#B0B0B0" android:textSize="12sp" />
+                            <TextView android:id="@+id/tvDetections" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
                         </LinearLayout>
 
                         <!-- Avg RSSI -->
                         <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
-                            <TextView android:text="Average RSSI" android:textColor="#B0B0B0" android:textSize="12sp" />
-                            <TextView android:id="@+id/tvAvgRssi" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Average RSSI" android:textColor="#B0B0B0" android:textSize="12sp" />
+                            <TextView android:id="@+id/tvAvgRssi" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
                         </LinearLayout>
                     </LinearLayout>
 
@@ -154,18 +152,17 @@
                         
                         <!-- Sessions -->
                         <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
-                            <TextView android:text="Session Count" android:textColor="#B0B0B0" android:textSize="12sp" />
-                            <TextView android:id="@+id/tvSessions" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Session Count" android:textColor="#B0B0B0" android:textSize="12sp" />
+                            <TextView android:id="@+id/tvSessions" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
                         </LinearLayout>
 
                         <!-- Total Dwell -->
                         <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
-                            <TextView android:text="Total Dwell Time" android:textColor="#B0B0B0" android:textSize="12sp" />
-                            <TextView android:id="@+id/tvTotalDwell" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Total Dwell Time" android:textColor="#B0B0B0" android:textSize="12sp" />
+                            <TextView android:id="@+id/tvTotalDwell" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
                         </LinearLayout>
                     </LinearLayout>
 
-                </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 

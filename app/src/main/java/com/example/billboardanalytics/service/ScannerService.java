@@ -6,14 +6,13 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
-import com.example.billboardanalytics.R;
+
 import com.example.billboardanalytics.data.AppDatabase;
 import com.example.billboardanalytics.engine.SessionizationEngine;
 import com.example.billboardanalytics.scanner.BluetoothScanner;
@@ -39,13 +38,13 @@ public class ScannerService extends Service {
         AppDatabase db = AppDatabase.getDatabase(getApplicationContext());
         engine = new SessionizationEngine(db.analyticsDao());
 
-        bluetoothScanner = new BluetoothScanner(this, observation -> {
-            engine.processDetection(observation.getMac(), observation.getSource(), observation.getRssi());
-        });
+        bluetoothScanner = new BluetoothScanner(this, observation -> 
+            engine.processDetection(observation.getMac(), observation.getSource(), observation.getRssi())
+        );
 
-        wifiScanner = new WiFiScanner(this, observation -> {
-            engine.processDetection(observation.getBssid(), observation.getSource(), observation.getRssi());
-        });
+        wifiScanner = new WiFiScanner(this, observation -> 
+            engine.processDetection(observation.getBssid(), observation.getSource(), observation.getRssi())
+        );
     }
 
     @Override
@@ -65,13 +64,9 @@ public class ScannerService extends Service {
                 .setOngoing(true)
                 .build();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, 
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION | 
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
-        } else {
-            startForeground(NOTIFICATION_ID, notification);
-        }
+        startForeground(NOTIFICATION_ID, notification, 
+            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION | 
+            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
 
         try {
             bluetoothScanner.startScanning();
@@ -100,18 +95,16 @@ public class ScannerService extends Service {
     }
 
     private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel serviceChannel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Background Scanner Channel",
-                    NotificationManager.IMPORTANCE_LOW
-            );
-            serviceChannel.setDescription("Keeps the Billboard Analytics scanner running.");
-            
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) {
-                manager.createNotificationChannel(serviceChannel);
-            }
+        NotificationChannel serviceChannel = new NotificationChannel(
+                CHANNEL_ID,
+                "Background Scanner Channel",
+                NotificationManager.IMPORTANCE_LOW
+        );
+        serviceChannel.setDescription("Keeps the Billboard Analytics scanner running.");
+        
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager != null) {
+            manager.createNotificationChannel(serviceChannel);
         }
     }
 }

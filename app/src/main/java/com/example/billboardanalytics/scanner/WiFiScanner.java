@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import androidx.core.content.ContextCompat;
 
@@ -27,6 +29,8 @@ public class WiFiScanner {
     
     private final SimpleDateFormat dateFormat;
     private boolean isScanning = false;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private static final long SCAN_INTERVAL_MS = 30_000; // 30 seconds to respect OS throttling
 
     public interface ObservationCallback {
         void onObservationDetected(Observation observation);
@@ -64,6 +68,7 @@ public class WiFiScanner {
 
     public void stopScanning() {
         isScanning = false;
+        handler.removeCallbacksAndMessages(null);
         try {
             context.unregisterReceiver(wifiScanReceiver);
         } catch (IllegalArgumentException e) {
@@ -88,15 +93,13 @@ public class WiFiScanner {
     private final BroadcastReceiver wifiScanReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            // A scan failure usually means the OS throttled the scan. We might just get cached results.
-            // We can still try to get the latest results regardless.
+            // A scan failure usually means the OS throttled the scan.
+            // We still fetch the latest cached results regardless.
             scanSuccess();
-            
-            // Re-trigger scan if still scanning
+
+            // Re-trigger scan after a delay to avoid OS throttling
             if (isScanning) {
-                // To avoid busy-looping immediately if throttled, we might delay here.
-                // But for standard "continuous" scanning, we request it again.
-                triggerScan();
+                handler.postDelayed(() -> triggerScan(), SCAN_INTERVAL_MS);
             }
         }
     };
