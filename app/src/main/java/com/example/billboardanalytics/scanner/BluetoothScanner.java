@@ -55,37 +55,14 @@ public class BluetoothScanner {
             return;
         }
 
-        startClassicScan();
         startLeScan();
     }
 
     @SuppressLint("MissingPermission")
     public void stopScanning() {
-        if (bluetoothAdapter != null && bluetoothAdapter.isDiscovering()) {
-            bluetoothAdapter.cancelDiscovery();
-        }
-        
-        try {
-            context.unregisterReceiver(classicReceiver);
-        } catch (IllegalArgumentException e) {
-            // Receiver not registered
-        }
-
         if (bluetoothLeScanner != null) {
             bluetoothLeScanner.stopScan(leScanCallback);
         }
-    }
-
-    @SuppressLint("MissingPermission")
-    private void startClassicScan() {
-        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        ContextCompat.registerReceiver(context, classicReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
-        
-        if (bluetoothAdapter.isDiscovering()) {
-            bluetoothAdapter.cancelDiscovery();
-        }
-        bluetoothAdapter.startDiscovery();
-        Log.d(TAG, "Started Classic Bluetooth Discovery");
     }
 
     @SuppressLint("MissingPermission")
@@ -95,8 +72,11 @@ public class BluetoothScanner {
             bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
         }
         if (bluetoothLeScanner != null) {
-            bluetoothLeScanner.startScan(leScanCallback);
-            Log.d(TAG, "Started BLE Scanning");
+            android.bluetooth.le.ScanSettings settings = new android.bluetooth.le.ScanSettings.Builder()
+                    .setScanMode(android.bluetooth.le.ScanSettings.SCAN_MODE_LOW_LATENCY)
+                    .build();
+            bluetoothLeScanner.startScan(null, settings, leScanCallback);
+            Log.d(TAG, "Started BLE Scanning with SCAN_MODE_LOW_LATENCY");
         } else {
             Log.e(TAG, "BluetoothLeScanner unavailable — BT may still be off");
         }
@@ -107,28 +87,6 @@ public class BluetoothScanner {
     }
 
     // Classic Bluetooth Receiver
-    private final BroadcastReceiver classicReceiver = new BroadcastReceiver() {
-        @SuppressLint("MissingPermission")
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                int rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE);
-
-                if (device != null) {
-                    Observation obs = new Observation("BT_CLASSIC", device.getAddress(), rssi, getCurrentTimestamp());
-                    obs.setDeviceName(device.getName());
-                    obs.setDeviceType(getDeviceTypeString(device.getType()));
-                    
-                    if (callback != null) {
-                        callback.onObservationDetected(obs);
-                    }
-                    Log.d(TAG, "Classic Found: " + obs.toJson());
-                }
-            }
-        }
-    };
-
     // BLE Scan Callback
     private final ScanCallback leScanCallback = new ScanCallback() {
         @SuppressLint("MissingPermission")
@@ -165,20 +123,20 @@ public class BluetoothScanner {
         }
 
         @Override
+        public void onBatchScanResults(java.util.List<ScanResult> results) {
+            super.onBatchScanResults(results);
+            Log.d(TAG, "onBatchScanResults: " + results.size() + " BLE results received");
+            for (ScanResult result : results) {
+                onScanResult(android.bluetooth.le.ScanSettings.CALLBACK_TYPE_ALL_MATCHES, result);
+            }
+        }
+
+        @Override
         public void onScanFailed(int errorCode) {
             super.onScanFailed(errorCode);
             Log.e(TAG, "BLE Scan Failed with code: " + errorCode);
         }
     };
-
-    private String getDeviceTypeString(int type) {
-        switch (type) {
-            case BluetoothDevice.DEVICE_TYPE_CLASSIC: return "CLASSIC";
-            case BluetoothDevice.DEVICE_TYPE_LE: return "LE";
-            case BluetoothDevice.DEVICE_TYPE_DUAL: return "DUAL";
-            default: return "UNKNOWN";
-        }
-    }
 
     private String bytesToHex(byte[] bytes) {
         StringBuilder sb = new StringBuilder();

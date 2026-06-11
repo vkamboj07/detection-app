@@ -77,11 +77,13 @@ public class MainActivity extends AppCompatActivity {
         Button btnLiveDevices = findViewById(R.id.btnLiveDevices);
         Button btnExportData = findViewById(R.id.btnExportData);
         Button btnDebugLog = findViewById(R.id.btnDebugLog);
+        Button btnSyncData = findViewById(R.id.btnSyncData);
 
         btnStartTracker.setOnClickListener(v -> toggleTracker());
         btnLiveDevices.setOnClickListener(v -> startActivity(new Intent(this, NearbyDevicesActivity.class)));
         btnExportData.setOnClickListener(v -> exportData());
         btnDebugLog.setOnClickListener(v -> startActivity(new Intent(this, DebugLogActivity.class)));
+        btnSyncData.setOnClickListener(v -> triggerManualSync());
 
         setupCharts();
 
@@ -323,5 +325,12 @@ public class MainActivity extends AppCompatActivity {
         sendIntent.putExtra(Intent.EXTRA_TEXT, report);
         sendIntent.setType("text/plain");
         startActivity(Intent.createChooser(sendIntent, "Export Analytics Data"));
+    }
+
+    private void triggerManualSync() {
+        Intent intent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
+        intent.setAction(com.example.billboardanalytics.service.ScannerService.ACTION_TRIGGER_SYNC);
+        startForegroundService(intent);
+        Toast.makeText(this, "Immediate Cloud Sync Triggered!", Toast.LENGTH_SHORT).show();
     }
 }

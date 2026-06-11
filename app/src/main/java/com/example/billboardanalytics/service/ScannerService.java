@@ -25,9 +25,12 @@ public class ScannerService extends Service {
     private static final String CHANNEL_ID = "ScannerServiceChannel";
     private static final int NOTIFICATION_ID = 1;
 
+    public static final String ACTION_TRIGGER_SYNC = "com.example.billboardanalytics.ACTION_TRIGGER_SYNC";
+
     private BluetoothScanner bluetoothScanner;
     private WiFiScanner wifiScanner;
     private SessionizationEngine engine;
+    private SupabaseSyncManager syncManager;
 
     @Override
     public void onCreate() {
@@ -41,7 +44,7 @@ public class ScannerService extends Service {
         // Read Supabase credentials from string resources (set these in res/values/strings.xml)
         String supabaseUrl  = getString(R.string.supabase_url);
         String supabaseKey  = getString(R.string.supabase_anon_key);
-        SupabaseSyncManager syncManager = new SupabaseSyncManager(
+        syncManager = new SupabaseSyncManager(
                 getApplicationContext(), db.analyticsDao(), supabaseUrl, supabaseKey);
 
         engine = new SessionizationEngine(db.analyticsDao(), syncManager);
@@ -58,6 +61,14 @@ public class ScannerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "ScannerService onStartCommand");
+
+        if (intent != null && ACTION_TRIGGER_SYNC.equals(intent.getAction())) {
+            Log.d(TAG, "Sync action triggered via Intent");
+            if (syncManager != null) {
+                syncManager.syncImmediately();
+            }
+            return START_STICKY;
+        }
 
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(

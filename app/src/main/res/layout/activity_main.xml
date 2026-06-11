@@ -78,6 +78,17 @@
                 android:text="Debug Log"
                 app:cornerRadius="24dp"/>
 
+            <Button
+                android:id="@+id/btnSyncData"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_columnSpan="2"
+                android:layout_marginTop="16dp"
+                android:backgroundTint="#FF9800"
+                android:textColor="#1E1E1E"
+                android:text="Sync Cloud Data"
+                app:cornerRadius="24dp"/>
+
         </GridLayout>
 
         <!-- Dashboard Overview Section -->

@@ -70,6 +70,16 @@ public class SupabaseSyncManager {
         pendingSync = scheduler.schedule(this::performSync, DEBOUNCE_SECONDS, TimeUnit.SECONDS);
     }
 
+    /**
+     * Forces an immediate, asynchronous upload on a background thread.
+     */
+    public synchronized void syncImmediately() {
+        if (pendingSync != null && !pendingSync.isDone()) {
+            pendingSync.cancel(false);
+        }
+        scheduler.execute(this::performSync);
+    }
+
     /** Call when the service is destroyed to release resources. */
     public void shutdown() {
         scheduler.shutdownNow();
