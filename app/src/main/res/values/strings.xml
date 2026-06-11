@@ -7,6 +7,6 @@
         Replace these placeholder values with your actual project URL and anon key.
         You can find them at: https://supabase.com/dashboard → Project Settings → API
     -->
-    <string name="supabase_url" translatable="false">https://qppdmindtqlzbomybsuc.supabase.co</string>
-    <string name="supabase_anon_key" translatable="false">sb_publishable_WKlu8KyFrpD1ExnyJxtJ-g_ShFDFTQS</string>
+    <string name="supabase_url" translatable="false">https://zzzazvoeweecddidqysy.supabase.co</string>
+    <string name="supabase_anon_key" translatable="false">sb_publishable_rpoU-XbKNvx5IE4iobJWzg_60wc823q</string>
 </resources>
