@@ -25,21 +25,22 @@ import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 public class NearbyDevicesViewModel extends AndroidViewModel {
     private static final String TAG = "NearbyDevicesViewModel";
     private final AnalyticsDao dao;
     private final MutableLiveData<List<NearbyDevice>> nearbyDevicesLiveData = new MutableLiveData<>();
     private final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-    private final SimpleDateFormat dateFormat;
+
+    // SimpleDateFormat is NOT thread-safe — use ThreadLocal so the scheduled thread gets its own
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return sdf;
+    });
 
     public NearbyDevicesViewModel(@NonNull Application application) {
         super(application);
         dao = AppDatabase.getDatabase(application).analyticsDao();
-
-        dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-
         startPolling();
     }
 
@@ -60,7 +61,7 @@ public class NearbyDevicesViewModel extends AndroidViewModel {
     private void updateDevicesList() {
         long now = System.currentTimeMillis();
         long thresholdMs = now - 300_000; // 5 minutes
-        String thresholdStr = dateFormat.format(new Date(thresholdMs));
+        String thresholdStr = DATE_FORMAT.get().format(new Date(thresholdMs));
 
         // Single query: all devices + their latest observation — no N+1
         List<DeviceEntity> allDevices = dao.getAllDevices();
@@ -120,7 +121,7 @@ public class NearbyDevicesViewModel extends AndroidViewModel {
     private long parseTimestamp(String timestamp) {
         if (timestamp == null) return 0;
         try {
-            Date date = dateFormat.parse(timestamp);
+            Date date = DATE_FORMAT.get().parse(timestamp);
             return date != null ? date.getTime() : 0;
         } catch (ParseException e) {
             return 0;
@@ -130,6 +131,6 @@ public class NearbyDevicesViewModel extends AndroidViewModel {
     @Override
     protected void onCleared() {
         super.onCleared();
-        executorService.shutdown();
+        executorService.shutdownNow(); // interrupt any in-flight DB queries immediately
     }
 }

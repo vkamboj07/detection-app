@@ -12,10 +12,12 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import com.example.billboardanalytics.R;
 import com.example.billboardanalytics.data.AppDatabase;
 import com.example.billboardanalytics.engine.SessionizationEngine;
 import com.example.billboardanalytics.scanner.BluetoothScanner;
 import com.example.billboardanalytics.scanner.WiFiScanner;
+import com.example.billboardanalytics.sync.SupabaseSyncManager;
 import com.example.billboardanalytics.ui.MainActivity;
 
 public class ScannerService extends Service {
@@ -35,7 +37,14 @@ public class ScannerService extends Service {
         createNotificationChannel();
 
         AppDatabase db = AppDatabase.getDatabase(getApplicationContext());
-        engine = new SessionizationEngine(db.analyticsDao());
+
+        // Read Supabase credentials from string resources (set these in res/values/strings.xml)
+        String supabaseUrl  = getString(R.string.supabase_url);
+        String supabaseKey  = getString(R.string.supabase_anon_key);
+        SupabaseSyncManager syncManager = new SupabaseSyncManager(
+                getApplicationContext(), db.analyticsDao(), supabaseUrl, supabaseKey);
+
+        engine = new SessionizationEngine(db.analyticsDao(), syncManager);
 
         bluetoothScanner = new BluetoothScanner(this, observation ->
             engine.processDetection(observation.getMac(), observation.getSource(), observation.getRssi())
@@ -85,6 +94,7 @@ public class ScannerService extends Service {
 
         if (bluetoothScanner != null) bluetoothScanner.stopScanning();
         if (wifiScanner != null) wifiScanner.stopScanning();
+        if (engine != null) engine.shutdown();
     }
 
     @Nullable

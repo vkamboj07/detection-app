@@ -13,6 +13,7 @@ import com.example.billboardanalytics.data.AppDatabase;
 import com.example.billboardanalytics.data.DeviceEntity;
 import com.example.billboardanalytics.data.ObservationEntity;
 import com.example.billboardanalytics.data.SessionEntity;
+import com.example.billboardanalytics.util.DeviceCategory;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -54,19 +55,8 @@ public class DeviceDetailViewModel extends AndroidViewModel {
             data.anonymousId = "visitor_" + device.id;
             data.macAddress = device.deviceIdentifier;
             
-            // Compute category
-            if (device.source != null && device.source.equals("WIFI")) {
-                data.category = "Router/AP";
-            } else {
-                int hash = device.deviceIdentifier != null ? Math.abs(device.deviceIdentifier.hashCode()) % 5 : 4;
-                switch (hash) {
-                    case 0: data.category = "Phones"; break;
-                    case 1: data.category = "Audio"; break;
-                    case 2: data.category = "Laptop"; break;
-                    case 3: data.category = "Watches"; break;
-                    default: data.category = "Unknown"; break;
-                }
-            }
+            // Compute category using shared utility
+            data.category = DeviceCategory.resolve(device.source, device.deviceIdentifier);
             
             // Format dates simply
             data.firstSeen = formatDateString(device.firstSeen);

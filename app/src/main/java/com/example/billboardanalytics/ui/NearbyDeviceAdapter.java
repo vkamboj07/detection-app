@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.billboardanalytics.R;
+import com.example.billboardanalytics.util.DeviceCategory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,22 +45,13 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
     @SuppressLint("SetTextI18n")
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        NearbyDevice device = devices.get(position);        holder.tvDeviceId.setText(device.deviceId);
+        NearbyDevice device = devices.get(position);
+        
+        holder.tvDeviceId.setText(device.deviceId);
         
         // Compute the "Category • Protocol" subtitle
         String protocol = device.source.equals("WIFI") ? "Wi-Fi" : "Bluetooth";
-        String category = "Unknown";
-        if (device.source.equals("WIFI")) {
-            category = "Router/AP";
-        } else {
-            int hash = Math.abs(device.deviceId.hashCode()) % 5;
-            switch (hash) {
-                case 0: category = "Phones"; break;
-                case 1: category = "Audio"; break;
-                case 2: category = "Laptop"; break;
-                case 3: category = "Watches"; break;
-            }
-        }
+        String category = DeviceCategory.resolve(device.source, device.deviceId);
         holder.tvSource.setText(category + " • " + protocol);
 
         holder.tvSignal.setText(device.rssi + " dBm");
@@ -73,18 +65,18 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
         holder.tvLastSeen.setText(device.lastSeenText);
         holder.tvStatus.setText(device.status);
 
-        // Color coding for status badge — always reset drawable first to preserve padding
+        // Color coding for status badge — all states use shaped drawables to preserve rounded corners
         switch (device.status) {
             case "IDLE":
-                holder.tvStatus.setBackgroundColor(Color.parseColor("#FFA000")); // Amber
+                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_idle);
                 holder.tvStatus.setTextColor(Color.WHITE);
                 break;
             case "LEFT":
-                holder.tvStatus.setBackgroundColor(Color.parseColor("#C62828")); // Red
+                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_left);
                 holder.tvStatus.setTextColor(Color.WHITE);
                 break;
             default: // ACTIVE
-                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_active); // Green
+                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_active);
                 holder.tvStatus.setTextColor(Color.BLACK);
                 break;
         }

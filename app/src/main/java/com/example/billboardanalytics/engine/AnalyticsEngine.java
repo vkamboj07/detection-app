@@ -3,6 +3,7 @@ package com.example.billboardanalytics.engine;
 import com.example.billboardanalytics.data.AnalyticsDao;
 import com.example.billboardanalytics.data.DeviceEntity;
 import com.example.billboardanalytics.data.SessionEntity;
+import com.example.billboardanalytics.util.DeviceCategory;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -15,15 +16,18 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
-
 public class AnalyticsEngine {
     private final AnalyticsDao dao;
-    private final SimpleDateFormat dateFormat;
+
+    // SimpleDateFormat is NOT thread-safe — use ThreadLocal so each thread gets its own instance
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return sdf;
+    });
 
     public AnalyticsEngine(AnalyticsDao dao) {
         this.dao = dao;
-        this.dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-        this.dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     public FootfallMetrics generateMetricsForToday() {
@@ -46,9 +50,9 @@ public class AnalyticsEngine {
         cal.set(Calendar.SECOND, 59);
         long endOfDayMs = cal.getTimeInMillis();
 
-        String startOfDayStr = dateFormat.format(new Date(startOfDayMs));
-        String endOfDayStr = dateFormat.format(new Date(endOfDayMs));
-        String fiveMinsAgoStr = dateFormat.format(new Date(fiveMinsAgo));
+        String startOfDayStr = DATE_FORMAT.get().format(new Date(startOfDayMs));
+        String endOfDayStr = DATE_FORMAT.get().format(new Date(endOfDayMs));
+        String fiveMinsAgoStr = DATE_FORMAT.get().format(new Date(fiveMinsAgo));
 
         // 2. Fetch Data
         List<SessionEntity> todaySessions = dao.getSessionsForDateRange(startOfDayStr, endOfDayStr);
@@ -104,44 +108,33 @@ public class AnalyticsEngine {
             DeviceEntity device = deviceMap.get(deviceId);
             if (device != null) {
                 String source = device.source != null ? device.source : "UNKNOWN";
-                
+
                 // Map Protocols
                 if (source.equals("WIFI")) {
                     sourceDistribution.merge("Wi-Fi", 1, Integer::sum);
-                    categoryDistribution.merge("Router/AP", 1, Integer::sum);
                 } else if (source.equals("BLE") || source.equals("BT_CLASSIC")) {
                     sourceDistribution.merge("Bluetooth", 1, Integer::sum);
-                    
-                    // Deterministically categorize based on MAC address for demonstration
-                    int hash = device.deviceIdentifier != null
-                            ? Math.abs(device.deviceIdentifier.hashCode()) % 5
-                            : 4;
-                    String category;
-                    switch (hash) {
-                        case 0: category = "Phones"; break;
-                        case 1: category = "Audio"; break;
-                        case 2: category = "Laptop"; break;
-                        case 3: category = "Watches"; break;
-                        default: category = "Unknown"; break;
-                    }
-                    categoryDistribution.merge(category, 1, Integer::sum);
                 } else {
                     sourceDistribution.merge("Unknown", 1, Integer::sum);
-                    categoryDistribution.merge("Unknown", 1, Integer::sum);
                 }
+
+                // Category via shared utility
+                String category = DeviceCategory.resolve(source, device.deviceIdentifier);
+                categoryDistribution.merge(category, 1, Integer::sum);
             }
         }
 
-        // Calculate Peak Activity Mins Ago
+        // Peak activity: compute how many minutes ago the centre of the peak hour was.
+        // e.g. if peakHour=14 the centre is 14:30. If it's currently 15:10, diff = 40 mins.
+        // If the peak hour hasn't happened yet today (future hour), report 0.
         Calendar peakCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         peakCal.setTimeInMillis(now);
         peakCal.set(Calendar.HOUR_OF_DAY, peakHour);
-        peakCal.set(Calendar.MINUTE, 30); // Approximate center of the peak hour
+        peakCal.set(Calendar.MINUTE, 30); // Approximate centre of the peak hour
+        peakCal.set(Calendar.SECOND, 0);
+        peakCal.set(Calendar.MILLISECOND, 0);
         long peakDiffMins = (now - peakCal.getTimeInMillis()) / 60000;
-        if (peakDiffMins < 0) {
-            // Peak was earlier in the day
-            peakDiffMins += 24 * 60;
-        }
+        if (peakDiffMins < 0) peakDiffMins = 0; // peak hour is in the future — show 0
 
         // 6. Calculate Last 5 Minutes Trend
         Map<Integer, Integer> last5MinsTrend = new HashMap<>();
@@ -167,7 +160,7 @@ public class AnalyticsEngine {
             last5MinsTrend.put(i, uniqueInBucket.size());
         }
 
-        // 6. Populate Metrics
+        // 7. Populate Metrics
         metrics.totalVisitorsToday = uniqueVisitorsToday.size();
         metrics.currentNearbyDevices = dao.getNearbyDevicesCount(fiveMinsAgoStr);
         metrics.returningVisitors = returningVisitorsToday.size();
@@ -184,7 +177,7 @@ public class AnalyticsEngine {
 
     private int getHourFromTimestamp(String timestamp) {
         try {
-            Date date = dateFormat.parse(timestamp);
+            Date date = DATE_FORMAT.get().parse(timestamp);
             if (date != null) {
                 Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
                 cal.setTime(date);
@@ -199,7 +192,7 @@ public class AnalyticsEngine {
     private long parseTimestamp(String timestamp) {
         if (timestamp == null) return 0;
         try {
-            Date date = dateFormat.parse(timestamp);
+            Date date = DATE_FORMAT.get().parse(timestamp);
             return date != null ? date.getTime() : 0;
         } catch (ParseException e) {
             return 0;

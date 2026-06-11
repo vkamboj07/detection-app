@@ -6,6 +6,7 @@ import com.example.billboardanalytics.data.AnalyticsDao;
 import com.example.billboardanalytics.data.DeviceEntity;
 import com.example.billboardanalytics.data.ObservationEntity;
 import com.example.billboardanalytics.data.SessionEntity;
+import com.example.billboardanalytics.sync.SupabaseSyncManager;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
@@ -22,13 +23,19 @@ public class SessionizationEngine {
     private static final long SESSION_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
     private final AnalyticsDao dao;
-    private final SimpleDateFormat dateFormat;
+    private final SupabaseSyncManager syncManager;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    public SessionizationEngine(AnalyticsDao dao) {
+    // SimpleDateFormat is NOT thread-safe — use ThreadLocal to give each thread its own instance
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return sdf;
+    });
+
+    public SessionizationEngine(AnalyticsDao dao, SupabaseSyncManager syncManager) {
         this.dao = dao;
-        this.dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-        this.dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        this.syncManager = syncManager;
     }
 
     public void processDetection(String deviceIdentifier, String source, int rssi) {
@@ -109,16 +116,19 @@ public class SessionizationEngine {
             output.detections = detections;
 
             Log.d(TAG, "Session Output: " + new Gson().toJson(output));
+
+            // 5. Push new data to Supabase so the web dashboard receives it
+            syncManager.syncAsync();
         });
     }
 
     private String getCurrentTimestamp() {
-        return dateFormat.format(new Date());
+        return DATE_FORMAT.get().format(new Date());
     }
 
     private long parseTimestamp(String timestamp) {
         try {
-            Date date = dateFormat.parse(timestamp);
+            Date date = DATE_FORMAT.get().parse(timestamp);
             return date != null ? date.getTime() : System.currentTimeMillis();
         } catch (ParseException e) {
             Log.e(TAG, "Error parsing timestamp: " + timestamp, e);
@@ -129,6 +139,12 @@ public class SessionizationEngine {
     private String formatDuration(long durationMs) {
         long minutes = (durationMs / 1000) / 60;
         return minutes + "m";
+    }
+
+    /** Call from the service's onDestroy to release threads and flush any pending sync. */
+    public void shutdown() {
+        executor.shutdownNow();
+        syncManager.shutdown();
     }
 
     // DTO for JSON Output

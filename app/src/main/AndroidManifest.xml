@@ -8,6 +8,9 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" tools:ignore="all" />
     
+    <!-- Internet permission for syncing data to Supabase -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
     <!-- Wi-Fi permissions -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
@@ -18,7 +21,7 @@
     
     <!-- Android 12+ Bluetooth permissions (just in case, though target is 11) -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" tools:targetApi="31" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" tools:targetApi="31" />
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:ignore="all" />
     <!-- Android 14+ Foreground Service types -->

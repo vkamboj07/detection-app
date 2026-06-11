@@ -1,96 +1,91 @@
 package com.example.billboardanalytics.ui;
 
 import android.os.Bundle;
-import android.widget.ScrollView;
+import android.widget.Button;
 import android.widget.TextView;
-import android.graphics.Color;
-import android.widget.LinearLayout;
-import android.widget.ImageView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.billboardanalytics.R;
 import com.example.billboardanalytics.data.AppDatabase;
 import com.example.billboardanalytics.data.DeviceEntity;
 import com.example.billboardanalytics.data.ObservationEntity;
+import com.example.billboardanalytics.data.SessionEntity;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 public class DebugLogActivity extends AppCompatActivity {
 
-    private TextView tvLog;
+    private TextView tvJsonOutput;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_debug_log);
 
-        // Build layout programmatically to avoid needing a new XML
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.parseColor("#1E1E1E"));
-        root.setPadding(48, 48, 48, 48);
+        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
 
-        // Header row
-        LinearLayout header = new LinearLayout(this);
-        header.setOrientation(LinearLayout.HORIZONTAL);
-        header.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        tvJsonOutput = findViewById(R.id.tvJsonOutput);
 
-        ImageView btnBack = new ImageView(this);
-        btnBack.setImageResource(android.R.drawable.ic_menu_revert);
-        btnBack.setColorFilter(Color.WHITE);
-        LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(80, 80);
-        backParams.setMarginEnd(32);
-        btnBack.setLayoutParams(backParams);
-        btnBack.setClickable(true);
-        btnBack.setFocusable(true);
-        btnBack.setOnClickListener(v -> finish());
+        Button btnLoadJson = findViewById(R.id.btnLoadJson);
+        Button btnClearDb = findViewById(R.id.btnClearDb);
 
-        TextView tvTitle = new TextView(this);
-        tvTitle.setText("Debug Log");
-        tvTitle.setTextColor(Color.WHITE);
-        tvTitle.setTextSize(22);
+        btnLoadJson.setOnClickListener(v -> loadSessionHistoryJson());
+        btnClearDb.setOnClickListener(v -> clearDatabase());
 
-        header.addView(btnBack);
-        header.addView(tvTitle);
-
-        // Log output
-        ScrollView scrollView = new ScrollView(this);
-        tvLog = new TextView(this);
-        tvLog.setTextColor(Color.parseColor("#B0B0B0"));
-        tvLog.setTextSize(12);
-        tvLog.setTypeface(android.graphics.Typeface.MONOSPACE);
-        tvLog.setPadding(0, 32, 0, 0);
-        scrollView.addView(tvLog);
-
-        root.addView(header);
-        root.addView(scrollView);
-        setContentView(root);
-
-        loadDebugInfo();
+        // Load on open
+        loadSessionHistoryJson();
     }
 
-    private void loadDebugInfo() {
+    private void loadSessionHistoryJson() {
+        tvJsonOutput.setText("Loading...");
         Executors.newSingleThreadExecutor().execute(() -> {
             AppDatabase db = AppDatabase.getDatabase(getApplicationContext());
             List<DeviceEntity> devices = db.analyticsDao().getAllDevices();
 
-            StringBuilder sb = new StringBuilder();
-            sb.append("=== Database Summary ===\n");
-            sb.append("Total devices: ").append(devices.size()).append("\n\n");
+            // Build a JSON-friendly structure per device
+            List<Map<String, Object>> output = new ArrayList<>();
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
             for (DeviceEntity device : devices) {
-                sb.append("ID: ").append(device.id).append("\n");
-                sb.append("  Identifier: ").append(device.deviceIdentifier).append("\n");
-                sb.append("  Source: ").append(device.source).append("\n");
-                sb.append("  First Seen: ").append(device.firstSeen).append("\n");
-                sb.append("  Last Seen: ").append(device.lastSeen).append("\n");
+                List<ObservationEntity> observations = db.analyticsDao().getObservationsForDevice(device.id);
+                List<SessionEntity> sessions = db.analyticsDao().getAllSessionsForDevice(device.id);
 
-                List<ObservationEntity> obs = db.analyticsDao().getObservationsForDevice(device.id);
-                sb.append("  Observations: ").append(obs.size()).append("\n\n");
+                Map<String, Object> deviceMap = new HashMap<>();
+                deviceMap.put("id", device.id);
+                deviceMap.put("identifier", device.deviceIdentifier);
+                deviceMap.put("source", device.source);
+                deviceMap.put("first_seen", device.firstSeen);
+                deviceMap.put("last_seen", device.lastSeen);
+                deviceMap.put("observation_count", observations.size());
+                deviceMap.put("session_count", sessions.size());
+                deviceMap.put("sessions", sessions);
+                output.add(deviceMap);
             }
 
-            String log = sb.toString();
-            runOnUiThread(() -> tvLog.setText(log));
+            String json = output.isEmpty()
+                    ? "No data yet. Start the tracker to collect observations."
+                    : gson.toJson(output);
+
+            runOnUiThread(() -> tvJsonOutput.setText(json));
+        });
+    }
+
+    private void clearDatabase() {
+        tvJsonOutput.setText("Clearing database...");
+        Executors.newSingleThreadExecutor().execute(() -> {
+            AppDatabase.getDatabase(getApplicationContext()).clearAllTables();
+            runOnUiThread(() -> {
+                tvJsonOutput.setText("Database cleared.");
+                Toast.makeText(this, "All data cleared.", Toast.LENGTH_SHORT).show();
+            });
         });
     }
 }

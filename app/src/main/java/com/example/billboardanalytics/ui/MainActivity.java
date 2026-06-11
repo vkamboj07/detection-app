@@ -149,12 +149,16 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             if (allGranted) {
+                // startScannerService() is guarded against double-starts internally
                 startScannerService();
             }
         }
     }
 
     private void startScannerService() {
+        // Guard: don't double-start if the service is already running
+        if (isTracking) return;
+
         Intent serviceIntent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
         startForegroundService(serviceIntent);
         isTracking = true;

@@ -31,6 +31,13 @@ public interface AnalyticsDao {
     @Query("SELECT * FROM observations WHERE device_id = :deviceId ORDER BY timestamp DESC")
     List<ObservationEntity> getObservationsForDevice(long deviceId);
 
+    /**
+     * Returns up to {@code limit} observations with id > {@code afterId}, ordered ascending.
+     * Used by SupabaseSyncManager to fetch only rows not yet uploaded.
+     */
+    @Query("SELECT * FROM observations WHERE id > :afterId ORDER BY id ASC LIMIT :limit")
+    List<ObservationEntity> getObservationsAfter(long afterId, int limit);
+
     // --- Sessions ---
     @Insert
     long insertSession(SessionEntity session);
