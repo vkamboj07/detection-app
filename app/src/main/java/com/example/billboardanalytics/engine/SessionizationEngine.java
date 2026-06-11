@@ -38,12 +38,25 @@ public class SessionizationEngine {
             // 1. Get or Create Device
             DeviceEntity device = dao.getDeviceByIdentifier(deviceIdentifier);
             if (device == null) {
-                device = new DeviceEntity();
-                device.deviceIdentifier = deviceIdentifier;
-                device.source = source;
-                device.firstSeen = timestamp;
-                device.lastSeen = timestamp;
-                device.id = dao.insertDevice(device);
+                DeviceEntity newDevice = new DeviceEntity();
+                newDevice.deviceIdentifier = deviceIdentifier;
+                newDevice.source = source;
+                newDevice.firstSeen = timestamp;
+                newDevice.lastSeen = timestamp;
+                long insertedId = dao.insertDevice(newDevice);
+                if (insertedId == -1) {
+                    // Another thread inserted this device first — fetch the existing record
+                    device = dao.getDeviceByIdentifier(deviceIdentifier);
+                    if (device == null) {
+                        Log.e(TAG, "Failed to insert or retrieve device: " + deviceIdentifier);
+                        return;
+                    }
+                    device.lastSeen = timestamp;
+                    dao.updateDevice(device);
+                } else {
+                    newDevice.id = insertedId;
+                    device = newDevice;
+                }
             } else {
                 device.lastSeen = timestamp;
                 dao.updateDevice(device);

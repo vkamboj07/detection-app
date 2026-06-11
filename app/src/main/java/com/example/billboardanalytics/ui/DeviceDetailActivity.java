@@ -70,8 +70,9 @@ public class DeviceDetailActivity extends AppCompatActivity {
 
     @android.annotation.SuppressLint("SetTextI18n")
     private void populateUI(DeviceDetailViewModel.DeviceDetailData data) {
-        tvDeviceIdHeader.setText(data.macAddress);
-        tvDeviceCategory.setText(data.category);
+        if (data == null) return;
+        tvDeviceIdHeader.setText(data.macAddress != null ? data.macAddress : "Unknown");
+        tvDeviceCategory.setText(data.category != null ? data.category : "Unknown");
         
         tvFirstSeen.setText(data.firstSeen);
         tvLastSeen.setText(data.lastSeen);

@@ -64,15 +64,15 @@ public class ScannerService extends Service {
                 .setOngoing(true)
                 .build();
 
-        startForeground(NOTIFICATION_ID, notification, 
-            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION | 
-            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
-
         try {
+            startForeground(NOTIFICATION_ID, notification, 
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION | 
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+
             bluetoothScanner.startScanning();
             wifiScanner.startScanning();
-        } catch (SecurityException e) {
-            Log.e(TAG, "Missing permissions to start scanners: " + e.getMessage());
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to start foreground or scanners: " + e.getMessage());
         }
 
         // START_STICKY ensures the OS restarts the service if it gets killed for memory

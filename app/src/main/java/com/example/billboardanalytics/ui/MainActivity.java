@@ -1,6 +1,7 @@
 package com.example.billboardanalytics.ui;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.widget.Button;
@@ -46,14 +47,20 @@ public class MainActivity extends AppCompatActivity {
     private PieChart categoryPieChart;
     private PieChart sourcePieChart;
 
+    private static final String PREFS_NAME = "tracker_prefs";
+    private static final String KEY_IS_TRACKING = "is_tracking";
+
     private boolean isTracking = false;
     private Button btnStartTracker;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Restore tracking state from prefs so button reflects reality after process restart
+        isTracking = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getBoolean(KEY_IS_TRACKING, false);
 
         tvCurrentDevices = findViewById(R.id.tvCurrentDevices);
         tvTotalVisitors = findViewById(R.id.tvTotalVisitors);
@@ -77,6 +84,9 @@ public class MainActivity extends AppCompatActivity {
         btnDebugLog.setOnClickListener(v -> startActivity(new Intent(this, DebugLogActivity.class)));
 
         setupCharts();
+
+        // Sync button to restored tracking state before any async work
+        updateTrackerButton();
 
         DashboardViewModel viewModel = new ViewModelProvider(this).get(DashboardViewModel.class);
         viewModel.getMetrics().observe(this, this::updateUI);
@@ -148,6 +158,8 @@ public class MainActivity extends AppCompatActivity {
         Intent serviceIntent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
         startForegroundService(serviceIntent);
         isTracking = true;
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                .putBoolean(KEY_IS_TRACKING, true).apply();
         updateTrackerButton();
     }
 
@@ -155,6 +167,8 @@ public class MainActivity extends AppCompatActivity {
         Intent serviceIntent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
         stopService(serviceIntent);
         isTracking = false;
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                .putBoolean(KEY_IS_TRACKING, false).apply();
         updateTrackerButton();
     }
 

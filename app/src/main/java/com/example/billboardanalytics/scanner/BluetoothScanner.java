@@ -79,7 +79,7 @@ public class BluetoothScanner {
     @SuppressLint("MissingPermission")
     private void startClassicScan() {
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        ContextCompat.registerReceiver(context, classicReceiver, filter, ContextCompat.RECEIVER_EXPORTED);
+        ContextCompat.registerReceiver(context, classicReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
         
         if (bluetoothAdapter.isDiscovering()) {
             bluetoothAdapter.cancelDiscovery();
@@ -90,9 +90,15 @@ public class BluetoothScanner {
 
     @SuppressLint("MissingPermission")
     private void startLeScan() {
+        // Re-fetch the scanner in case BT was off when this object was constructed
+        if (bluetoothLeScanner == null && bluetoothAdapter != null) {
+            bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+        }
         if (bluetoothLeScanner != null) {
             bluetoothLeScanner.startScan(leScanCallback);
             Log.d(TAG, "Started BLE Scanning");
+        } else {
+            Log.e(TAG, "BluetoothLeScanner unavailable — BT may still be off");
         }
     }
 

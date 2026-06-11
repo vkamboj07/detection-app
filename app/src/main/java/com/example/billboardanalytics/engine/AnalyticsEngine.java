@@ -38,6 +38,7 @@ public class AnalyticsEngine {
         cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
         long startOfDayMs = cal.getTimeInMillis();
         
         cal.set(Calendar.HOUR_OF_DAY, 23);
@@ -196,11 +197,12 @@ public class AnalyticsEngine {
     }
 
     private long parseTimestamp(String timestamp) {
+        if (timestamp == null) return 0;
         try {
             Date date = dateFormat.parse(timestamp);
-            return date != null ? date.getTime() : System.currentTimeMillis();
+            return date != null ? date.getTime() : 0;
         } catch (ParseException e) {
-            return System.currentTimeMillis();
+            return 0;
         }
     }
 }

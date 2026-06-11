@@ -108,7 +108,9 @@ public class WiFiScanner {
         try {
             List<ScanResult> results = wifiManager.getScanResults();
             for (ScanResult result : results) {
-                // Set the BSSID and other specific fields.
+                // Skip results with null or empty BSSID (can happen when location perms are weak)
+                if (result.BSSID == null || result.BSSID.isEmpty()) continue;
+
                 Observation obs = new Observation("WIFI", result.BSSID, result.level, getCurrentTimestamp());
                 obs.setBssid(result.BSSID);
                 obs.setSsid(result.SSID);

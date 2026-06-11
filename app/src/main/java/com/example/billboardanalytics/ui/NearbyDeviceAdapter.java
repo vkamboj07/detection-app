@@ -44,7 +44,8 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
     @SuppressLint("SetTextI18n")
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        NearbyDevice device = devices.get(position);        holder.tvDeviceId.setText(device.deviceId);
+        NearbyDevice device = devices.get(position);
+        holder.tvDeviceId.setText(device.deviceId);
         
         // Compute the "Category • Protocol" subtitle
         String protocol = device.source.equals("WIFI") ? "Wi-Fi" : "Bluetooth";
@@ -73,7 +74,7 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
         holder.tvLastSeen.setText(device.lastSeenText);
         holder.tvStatus.setText(device.status);
 
-        // Color coding for status badge
+        // Color coding for status badge — always reset drawable first to preserve padding
         switch (device.status) {
             case "IDLE":
                 holder.tvStatus.setBackgroundColor(Color.parseColor("#FFA000")); // Amber
@@ -83,8 +84,8 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
                 holder.tvStatus.setBackgroundColor(Color.parseColor("#C62828")); // Red
                 holder.tvStatus.setTextColor(Color.WHITE);
                 break;
-            default:
-                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_active);
+            default: // ACTIVE
+                holder.tvStatus.setBackgroundResource(R.drawable.bg_badge_active); // Green
                 holder.tvStatus.setTextColor(Color.BLACK);
                 break;
         }

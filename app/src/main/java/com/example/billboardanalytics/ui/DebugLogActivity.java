@@ -1,97 +1,97 @@
 package com.example.billboardanalytics.ui;
 
-import android.annotation.SuppressLint;
-
 import android.os.Bundle;
+import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
+import android.graphics.Color;
+import android.widget.LinearLayout;
+import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.billboardanalytics.R;
 import com.example.billboardanalytics.data.AppDatabase;
 import com.example.billboardanalytics.data.DeviceEntity;
-import com.example.billboardanalytics.data.SessionEntity;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.example.billboardanalytics.data.ObservationEntity;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class DebugLogActivity extends AppCompatActivity {
 
-    private TextView tvJsonOutput;
-    private AppDatabase db;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private TextView tvLog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_debug_log);
 
-        tvJsonOutput = findViewById(R.id.tvJsonOutput);
-        db = AppDatabase.getDatabase(this);
+        // Build layout programmatically to avoid needing a new XML
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(Color.parseColor("#1E1E1E"));
+        root.setPadding(48, 48, 48, 48);
 
-        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
-        
-        findViewById(R.id.btnLoadJson).setOnClickListener(v -> loadJsonData());
-        
-        findViewById(R.id.btnClearDb).setOnClickListener(v -> clearDatabase());
+        // Header row
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+        ImageView btnBack = new ImageView(this);
+        btnBack.setImageResource(android.R.drawable.ic_menu_revert);
+        btnBack.setColorFilter(Color.WHITE);
+        LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(80, 80);
+        backParams.setMarginEnd(32);
+        btnBack.setLayoutParams(backParams);
+        btnBack.setClickable(true);
+        btnBack.setFocusable(true);
+        btnBack.setOnClickListener(v -> finish());
+
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText("Debug Log");
+        tvTitle.setTextColor(Color.WHITE);
+        tvTitle.setTextSize(22);
+
+        header.addView(btnBack);
+        header.addView(tvTitle);
+
+        // Log output
+        ScrollView scrollView = new ScrollView(this);
+        tvLog = new TextView(this);
+        tvLog.setTextColor(Color.parseColor("#B0B0B0"));
+        tvLog.setTextSize(12);
+        tvLog.setTypeface(android.graphics.Typeface.MONOSPACE);
+        tvLog.setPadding(0, 32, 0, 0);
+        scrollView.addView(tvLog);
+
+        root.addView(header);
+        root.addView(scrollView);
+        setContentView(root);
+
+        loadDebugInfo();
     }
 
-    @SuppressLint("SetTextI18n")
-    private void loadJsonData() {
-        executor.execute(() -> {
-            try {
-                List<DeviceEntity> devices = db.analyticsDao().getAllDevices();
-                JSONArray jsonArray = new JSONArray();
+    private void loadDebugInfo() {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            AppDatabase db = AppDatabase.getDatabase(getApplicationContext());
+            List<DeviceEntity> devices = db.analyticsDao().getAllDevices();
 
-                for (DeviceEntity device : devices) {
-                    JSONObject deviceJson = new JSONObject();
-                    deviceJson.put("id", device.id);
-                    deviceJson.put("device_identifier", device.deviceIdentifier);
-                    deviceJson.put("source", device.source);
-                    deviceJson.put("first_seen", device.firstSeen);
-                    deviceJson.put("last_seen", device.lastSeen);
+            StringBuilder sb = new StringBuilder();
+            sb.append("=== Database Summary ===\n");
+            sb.append("Total devices: ").append(devices.size()).append("\n\n");
 
-                    List<SessionEntity> sessions = db.analyticsDao().getAllSessionsForDevice(device.id);
-                    deviceJson.put("sessions", createSessionsArray(sessions));
-                    jsonArray.put(deviceJson);
-                }
+            for (DeviceEntity device : devices) {
+                sb.append("ID: ").append(device.id).append("\n");
+                sb.append("  Identifier: ").append(device.deviceIdentifier).append("\n");
+                sb.append("  Source: ").append(device.source).append("\n");
+                sb.append("  First Seen: ").append(device.firstSeen).append("\n");
+                sb.append("  Last Seen: ").append(device.lastSeen).append("\n");
 
-                String jsonOutput = jsonArray.toString(4);
-                runOnUiThread(() -> tvJsonOutput.setText(jsonOutput));
-
-            } catch (JSONException e) {
-                runOnUiThread(() -> tvJsonOutput.setText("Error generating JSON:\n" + e.getMessage()));
+                List<ObservationEntity> obs = db.analyticsDao().getObservationsForDevice(device.id);
+                sb.append("  Observations: ").append(obs.size()).append("\n\n");
             }
-        });
-    }
 
-    private JSONArray createSessionsArray(List<SessionEntity> sessions) throws JSONException {
-        JSONArray sessionsArray = new JSONArray();
-        for (SessionEntity session : sessions) {
-            JSONObject sessionJson = new JSONObject();
-            sessionJson.put("session_id", session.id);
-            sessionJson.put("start_time", session.startTime);
-            sessionJson.put("end_time", session.endTime);
-            sessionJson.put("duration_ms", session.duration);
-            sessionsArray.put(sessionJson);
-        }
-        return sessionsArray;
-    }
-
-    @SuppressLint("SetTextI18n")
-    private void clearDatabase() {
-        executor.execute(() -> {
-            db.clearAllTables();
-            runOnUiThread(() -> {
-                Toast.makeText(this, "Database Cleared", Toast.LENGTH_SHORT).show();
-                tvJsonOutput.setText("Database cleared. No data to show.");
-            });
+            String log = sb.toString();
+            runOnUiThread(() -> tvLog.setText(log));
         });
     }
 }

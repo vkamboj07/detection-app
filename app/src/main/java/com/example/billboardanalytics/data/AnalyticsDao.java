@@ -57,4 +57,16 @@ public interface AnalyticsDao {
     @Query("SELECT * FROM devices")
     List<DeviceEntity> getAllDevices();
 
+    /**
+     * Returns the single most-recent observation for every device that has been
+     * seen since {@code sinceTimestamp} (ISO-8601 string).  One SQL query instead
+     * of N per-device queries, eliminating the N+1 problem in NearbyDevicesViewModel.
+     */
+    @Query("SELECT o.* FROM observations o " +
+           "INNER JOIN (SELECT device_id, MAX(timestamp) AS max_ts FROM observations GROUP BY device_id) latest " +
+           "ON o.device_id = latest.device_id AND o.timestamp = latest.max_ts " +
+           "INNER JOIN devices d ON o.device_id = d.id " +
+           "WHERE d.last_seen >= :sinceTimestamp")
+    List<ObservationEntity> getLatestObservationPerDeviceSince(String sinceTimestamp);
+
 }
