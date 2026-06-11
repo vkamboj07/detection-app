@@ -9,7 +9,6 @@ import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.billboardanalytics.R;
 import com.example.billboardanalytics.data.AppDatabase;
 import com.example.billboardanalytics.data.DeviceEntity;
 import com.example.billboardanalytics.data.ObservationEntity;

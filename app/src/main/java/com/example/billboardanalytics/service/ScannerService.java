@@ -12,7 +12,6 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
-
 import com.example.billboardanalytics.data.AppDatabase;
 import com.example.billboardanalytics.engine.SessionizationEngine;
 import com.example.billboardanalytics.scanner.BluetoothScanner;
@@ -38,11 +37,11 @@ public class ScannerService extends Service {
         AppDatabase db = AppDatabase.getDatabase(getApplicationContext());
         engine = new SessionizationEngine(db.analyticsDao());
 
-        bluetoothScanner = new BluetoothScanner(this, observation -> 
+        bluetoothScanner = new BluetoothScanner(this, observation ->
             engine.processDetection(observation.getMac(), observation.getSource(), observation.getRssi())
         );
 
-        wifiScanner = new WiFiScanner(this, observation -> 
+        wifiScanner = new WiFiScanner(this, observation ->
             engine.processDetection(observation.getBssid(), observation.getSource(), observation.getRssi())
         );
     }
@@ -65,8 +64,8 @@ public class ScannerService extends Service {
                 .build();
 
         try {
-            startForeground(NOTIFICATION_ID, notification, 
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION | 
+            startForeground(NOTIFICATION_ID, notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION |
                 android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
 
             bluetoothScanner.startScanning();
@@ -83,7 +82,7 @@ public class ScannerService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "ScannerService onDestroy");
-        
+
         if (bluetoothScanner != null) bluetoothScanner.stopScanning();
         if (wifiScanner != null) wifiScanner.stopScanning();
     }
@@ -101,7 +100,7 @@ public class ScannerService extends Service {
                 NotificationManager.IMPORTANCE_LOW
         );
         serviceChannel.setDescription("Keeps the Billboard Analytics scanner running.");
-        
+
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager != null) {
             manager.createNotificationChannel(serviceChannel);

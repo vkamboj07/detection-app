@@ -44,8 +44,7 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
     @SuppressLint("SetTextI18n")
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        NearbyDevice device = devices.get(position);
-        holder.tvDeviceId.setText(device.deviceId);
+        NearbyDevice device = devices.get(position);        holder.tvDeviceId.setText(device.deviceId);
         
         // Compute the "Category • Protocol" subtitle
         String protocol = device.source.equals("WIFI") ? "Wi-Fi" : "Bluetooth";
