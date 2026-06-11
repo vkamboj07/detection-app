@@ -41,14 +41,14 @@ import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String PREFS_NAME = "tracker_prefs";
+    private static final String KEY_IS_TRACKING = "is_tracking";
+
     private TextView tvCurrentDevices, tvTotalVisitors, tvReturningVisitors, tvAvgDwellTime, tvPeakHour;
     private BarChart hourlyTrafficChart;
     private LineChart activeDevicesLineChart;
     private PieChart categoryPieChart;
     private PieChart sourcePieChart;
-
-    private static final String PREFS_NAME = "tracker_prefs";
-    private static final String KEY_IS_TRACKING = "is_tracking";
 
     private boolean isTracking = false;
     private Button btnStartTracker;
@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         tvReturningVisitors = findViewById(R.id.tvReturningVisitors);
         tvAvgDwellTime = findViewById(R.id.tvAvgDwellTime);
         tvPeakHour = findViewById(R.id.tvPeakHour);
-        
+
         hourlyTrafficChart = findViewById(R.id.hourlyTrafficChart);
         activeDevicesLineChart = findViewById(R.id.activeDevicesLineChart);
         categoryPieChart = findViewById(R.id.categoryPieChart);
@@ -176,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
         if (isTracking) {
             stopScannerService();
         } else {
-            // Start a new session: Clear data and start service
+            // Start a new session: clear data then start service
             AppDatabase db = AppDatabase.getDatabase(this);
             java.util.concurrent.Executors.newSingleThreadExecutor().execute(() -> {
                 db.clearAllTables();
@@ -191,17 +191,18 @@ public class MainActivity extends AppCompatActivity {
     private void updateTrackerButton() {
         if (isTracking) {
             btnStartTracker.setText("Stop Tracker");
-            btnStartTracker.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#CF6679")));
-            btnStartTracker.setTextColor(android.graphics.Color.WHITE);
+            btnStartTracker.setBackgroundTintList(
+                    android.content.res.ColorStateList.valueOf(Color.parseColor("#CF6679")));
+            btnStartTracker.setTextColor(Color.WHITE);
         } else {
             btnStartTracker.setText("Start Tracker");
-            btnStartTracker.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#B3C4C1")));
-            btnStartTracker.setTextColor(android.graphics.Color.parseColor("#1E1E1E"));
+            btnStartTracker.setBackgroundTintList(
+                    android.content.res.ColorStateList.valueOf(Color.parseColor("#B3C4C1")));
+            btnStartTracker.setTextColor(Color.parseColor("#1E1E1E"));
         }
     }
 
     private void setupCharts() {
-        // Bar Chart Setup
         hourlyTrafficChart.getDescription().setEnabled(false);
         hourlyTrafficChart.getLegend().setTextColor(Color.WHITE);
         hourlyTrafficChart.getAxisLeft().setTextColor(Color.WHITE);
@@ -210,8 +211,7 @@ public class MainActivity extends AppCompatActivity {
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setTextColor(Color.WHITE);
         xAxis.setDrawGridLines(false);
-        
-        // Line Chart Setup
+
         activeDevicesLineChart.getDescription().setEnabled(false);
         activeDevicesLineChart.getLegend().setTextColor(Color.WHITE);
         activeDevicesLineChart.getAxisLeft().setTextColor(Color.WHITE);
@@ -221,11 +221,10 @@ public class MainActivity extends AppCompatActivity {
         lineXAxis.setTextColor(Color.WHITE);
         lineXAxis.setDrawGridLines(false);
 
-        // Pie Charts Setup
         setupPieChart(categoryPieChart);
         setupPieChart(sourcePieChart);
     }
-    
+
     private void setupPieChart(PieChart chart) {
         chart.getDescription().setEnabled(false);
         chart.setDrawHoleEnabled(true);
@@ -242,10 +241,10 @@ public class MainActivity extends AppCompatActivity {
         tvCurrentDevices.setText(String.valueOf(metrics.currentNearbyDevices));
         tvTotalVisitors.setText(String.valueOf(metrics.totalVisitorsToday));
         tvReturningVisitors.setText(String.valueOf(metrics.returningVisitors));
-        
+
         long minutes = metrics.averageDwellTimeMs / (1000 * 60);
         tvAvgDwellTime.setText(minutes + "m");
-        
+
         tvPeakHour.setText(metrics.peakActivityMinsAgo);
 
         updateBarChart(metrics.hourlyTrafficTrend);
@@ -260,80 +259,65 @@ public class MainActivity extends AppCompatActivity {
             Integer value = hourlyTrend.get(i);
             entries.add(new BarEntry(i, value == null ? 0 : value));
         }
-
         BarDataSet dataSet = new BarDataSet(entries, "Visitors per Hour");
         dataSet.setColor(Color.parseColor("#B3C4C1"));
         dataSet.setValueTextColor(Color.WHITE);
-
-        BarData barData = new BarData(dataSet);
-        hourlyTrafficChart.setData(barData);
+        hourlyTrafficChart.setData(new BarData(dataSet));
         hourlyTrafficChart.invalidate();
     }
-    
+
     private void updateLineChart(Map<Integer, Integer> minuteTrend) {
         if (minuteTrend == null) return;
-        
         List<Entry> entries = new ArrayList<>();
-        // i goes from 0 (5 mins ago) to 4 (now)
         for (int i = 0; i < 5; i++) {
             Integer value = minuteTrend.get(i);
             entries.add(new Entry(i, value == null ? 0 : value));
         }
-
         LineDataSet dataSet = new LineDataSet(entries, "Active Devices");
         dataSet.setColor(Color.parseColor("#FF9800"));
         dataSet.setValueTextColor(Color.WHITE);
         dataSet.setLineWidth(2f);
         dataSet.setCircleColor(Color.parseColor("#FF9800"));
-
-        LineData lineData = new LineData(dataSet);
-        activeDevicesLineChart.setData(lineData);
+        activeDevicesLineChart.setData(new LineData(dataSet));
         activeDevicesLineChart.invalidate();
     }
 
     private void updatePieChart(PieChart chart, Map<String, Integer> distribution) {
         if (distribution == null) return;
-        
         List<PieEntry> entries = new ArrayList<>();
-        int[] colors = new int[]{
-                Color.parseColor("#E91E63"), // Pink
-                Color.parseColor("#FF9800"), // Orange
-                Color.parseColor("#FFC107"), // Yellow
-                Color.parseColor("#4CAF50"), // Green
-                Color.parseColor("#00BCD4")  // Cyan
+        int[] colors = {
+                Color.parseColor("#E91E63"),
+                Color.parseColor("#FF9800"),
+                Color.parseColor("#FFC107"),
+                Color.parseColor("#4CAF50"),
+                Color.parseColor("#00BCD4")
         };
-
         for (Map.Entry<String, Integer> entry : distribution.entrySet()) {
             if (entry.getValue() > 0) {
                 entries.add(new PieEntry(entry.getValue(), entry.getKey()));
             }
         }
-
         PieDataSet dataSet = new PieDataSet(entries, "");
         dataSet.setColors(colors);
         dataSet.setValueTextColor(Color.WHITE);
         dataSet.setValueTextSize(14f);
-
-        PieData pieData = new PieData(dataSet);
-        chart.setData(pieData);
+        chart.setData(new PieData(dataSet));
         chart.invalidate();
     }
 
     private void exportData() {
-        String report = "Billboard Analytics Export\n" +
-                "==========================\n" +
-                "Total Visitors Today: " + tvTotalVisitors.getText() + "\n" +
-                "Current Nearby Devices: " + tvCurrentDevices.getText() + "\n" +
-                "Returning Visitors: " + tvReturningVisitors.getText() + "\n" +
-                "Average Dwell Time: " + tvAvgDwellTime.getText() + "\n" +
-                "Peak Hour Activity: " + tvPeakHour.getText() + "\n";
+        String report = "Billboard Analytics Export\n"
+                + "==========================\n"
+                + "Total Visitors Today: " + tvTotalVisitors.getText() + "\n"
+                + "Current Nearby Devices: " + tvCurrentDevices.getText() + "\n"
+                + "Returning Visitors: " + tvReturningVisitors.getText() + "\n"
+                + "Average Dwell Time: " + tvAvgDwellTime.getText() + "\n"
+                + "Peak Hour Activity: " + tvPeakHour.getText() + "\n";
 
         Intent sendIntent = new Intent();
         sendIntent.setAction(Intent.ACTION_SEND);
         sendIntent.putExtra(Intent.EXTRA_TEXT, report);
         sendIntent.setType("text/plain");
-
-        Intent shareIntent = Intent.createChooser(sendIntent, "Export Analytics Data");
-        startActivity(shareIntent);
+        startActivity(Intent.createChooser(sendIntent, "Export Analytics Data"));
     }
 }
