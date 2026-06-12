@@ -50,7 +50,7 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
         holder.tvDeviceId.setText(device.deviceId);
         
         // Compute the "Category • Protocol" subtitle
-        String protocol = device.source.equals("WIFI") ? "Wi-Fi" : "Bluetooth";
+        String protocol = "WIFI".equals(device.source) ? "Wi-Fi" : "Bluetooth";
         String category = DeviceCategory.resolve(device.source, device.deviceId);
         holder.tvSource.setText(category + " • " + protocol);
 

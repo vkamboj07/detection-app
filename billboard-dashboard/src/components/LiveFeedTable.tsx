@@ -43,7 +43,7 @@ export function LiveFeedTable() {
             ) : (
               recentObs.map((obs) => {
                 const device = getDevice(obs.device_id);
-                const isWifi = obs.source.includes('WIFI');
+                const isWifi = obs.source && obs.source.includes('WIFI');
                 
                 return (
                   <tr 

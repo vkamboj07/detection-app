@@ -65,6 +65,38 @@ export interface Database {
           }
         ]
       }
+      sessions: {
+        Row: {
+          id: number
+          device_id: number
+          start_time: string
+          end_time: string
+          duration: number
+        }
+        Insert: {
+          id?: number
+          device_id: number
+          start_time: string
+          end_time: string
+          duration?: number
+        }
+        Update: {
+          id?: number
+          device_id?: number
+          start_time?: string
+          end_time?: string
+          duration?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,19 +1,23 @@
 import { useAnalytics } from './contexts/AnalyticsContext';
 import { KPICard } from './components/KPICard';
 import { LiveFeedTable } from './components/LiveFeedTable';
-import { FootfallChart, DeviceTypeDistribution, RSSIDistribution } from './components/Charts';
-import { Users, UserPlus, Database, Radio, Activity } from 'lucide-react';
-import { formatTimeAgo } from './lib/utils';
+import { FootfallChart, DeviceTypeDistribution, RSSIDistribution, DwellTimeChart } from './components/Charts';
+import { Users, UserPlus, Database, Radio, Activity, RefreshCw, Clock, TrendingUp, UserCheck } from 'lucide-react';
+import { formatTimeAgo, formatDuration } from './lib/utils';
 
 function App() {
-  const { 
-    loading, 
-    error, 
-    totalDevices, 
-    activeDevices, 
-    newDevicesToday, 
+  const {
+    loading,
+    error,
+    totalDevices,
+    activeDevices,
+    newDevicesToday,
     totalObservations,
-    observations 
+    averageDwellTimeMs,
+    peakHour,
+    returningVisitors,
+    observations,
+    resetSession,
   } = useAnalytics();
 
   if (error) {
@@ -25,7 +29,11 @@ function App() {
           </div>
           <h2 className="text-xl font-bold mb-2">Connection Error</h2>
           <p className="text-textSecondary">{error}</p>
-          <p className="text-sm text-textSecondary mt-4">Please check your Supabase credentials in .env.local</p>
+          <p className="text-sm text-textSecondary mt-4">
+            Check your <code className="bg-white/10 px-1 rounded">.env</code> file for{' '}
+            <code className="bg-white/10 px-1 rounded">VITE_SUPABASE_URL</code> and{' '}
+            <code className="bg-white/10 px-1 rounded">VITE_SUPABASE_ANON_KEY</code>.
+          </p>
         </div>
       </div>
     );
@@ -47,47 +55,75 @@ function App() {
   return (
     <div className="min-h-screen bg-background text-textPrimary p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        
+
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Footfall Analytics Dashboard</h1>
-            <p className="text-textSecondary text-sm">Real-time Bluetooth & Wi-Fi device monitoring</p>
+            <p className="text-textSecondary text-sm">Real-time Bluetooth &amp; Wi-Fi device monitoring</p>
           </div>
-          <div className="flex items-center gap-3 glass-card px-4 py-2 text-sm">
-            <span className="flex h-3 w-3 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
-            </span>
-            <span className="font-medium">System Online</span>
-            <span className="text-textSecondary ml-2 border-l border-white/10 pl-2">
-              Last updated: {lastUpdate ? formatTimeAgo(lastUpdate) : 'Never'}
-            </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={resetSession}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              New Session
+            </button>
+            <div className="flex items-center gap-3 glass-card px-4 py-2 text-sm">
+              <span className="flex h-3 w-3 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
+              </span>
+              <span className="font-medium">System Online</span>
+              <span className="text-textSecondary ml-2 border-l border-white/10 pl-2">
+                Last updated: {lastUpdate ? formatTimeAgo(lastUpdate) : 'Never'}
+              </span>
+            </div>
           </div>
         </header>
 
-        {/* KPI Grid */}
+        {/* KPI Grid — Row 1 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <KPICard 
-            title="Total Devices Seen" 
-            value={totalDevices.toLocaleString()} 
-            icon={Users} 
+          <KPICard
+            title="Total Devices Seen"
+            value={totalDevices.toLocaleString()}
+            icon={Users}
           />
-          <KPICard 
-            title="Currently Present (5m)" 
-            value={activeDevices.length.toLocaleString()} 
+          <KPICard
+            title="Currently Present (5 min)"
+            value={activeDevices.length.toLocaleString()}
             icon={Radio}
             className="border-primary/50"
           />
-          <KPICard 
-            title="New Devices Today" 
-            value={newDevicesToday.toLocaleString()} 
-            icon={UserPlus} 
+          <KPICard
+            title="New Devices Today"
+            value={newDevicesToday.toLocaleString()}
+            icon={UserPlus}
           />
-          <KPICard 
-            title="Total Observations" 
-            value={totalObservations.toLocaleString()} 
-            icon={Database} 
+          <KPICard
+            title="Total Observations"
+            value={totalObservations.toLocaleString()}
+            icon={Database}
+          />
+        </div>
+
+        {/* KPI Grid — Row 2 (session-based metrics) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <KPICard
+            title="Avg Dwell Time"
+            value={averageDwellTimeMs > 0 ? formatDuration(averageDwellTimeMs) : '—'}
+            icon={Clock}
+          />
+          <KPICard
+            title="Peak Hour Today"
+            value={peakHour}
+            icon={TrendingUp}
+          />
+          <KPICard
+            title="Returning Visitors Today"
+            value={returningVisitors.toLocaleString()}
+            icon={UserCheck}
           />
         </div>
 
@@ -100,6 +136,7 @@ function App() {
               <DeviceTypeDistribution />
               <RSSIDistribution />
             </div>
+            <DwellTimeChart />
           </div>
 
           {/* Live Feed Section */}
