@@ -13,13 +13,49 @@ export function useSupabaseData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(supabaseConfigError);
   const [sessionKey, setSessionKey] = useState(0);
+  const [resetting, setResetting] = useState(false);
 
-  const resetSession = () => {
+  /**
+   * Drops all rows from devices, observations, and sessions tables in Supabase,
+   * then resets local state and re-subscribes to live data.
+   *
+   * Order matters: delete child rows (observations, sessions) before the parent
+   * (devices) to avoid FK constraint violations if cascades are not configured.
+   */
+  const resetSession = async () => {
+    if (supabaseConfigError) return;
+    setResetting(true);
+    try {
+      // Step 1: delete child tables in parallel (both reference devices)
+      const [obsDelete, sessDelete] = await Promise.all([
+        supabase.from('observations').delete().gte('id', 0),
+        supabase.from('sessions').delete().gte('id', 0),
+      ]);
+
+      if (obsDelete.error) throw obsDelete.error;
+      if (sessDelete.error) {
+        console.warn('Sessions delete error (may not exist yet):', sessDelete.error.message);
+      }
+
+      // Step 2: delete parent table after children are gone
+      const devDelete = await supabase.from('devices').delete().gte('id', 0);
+      if (devDelete.error) throw devDelete.error;
+
+    } catch (err) {
+      console.error('Error resetting session data:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Reset failed: ${msg}`);
+      setResetting(false);
+      return;
+    }
+
+    // Clear local state and trigger a fresh re-subscribe via sessionKey bump
     setDevices([]);
     setObservations([]);
     setSessions([]);
     setLoading(false);
     setError(null);
+    setResetting(false);
     setSessionKey(k => k + 1);
   };
 
@@ -148,5 +184,5 @@ export function useSupabaseData() {
     };
   }, [sessionKey]);
 
-  return { devices, observations, sessions, loading, error, resetSession };
+  return { devices, observations, sessions, loading, error, resetting, resetSession };
 }

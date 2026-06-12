@@ -1,14 +1,16 @@
+import { useState } from 'react';
 import { useAnalytics } from './contexts/AnalyticsContext';
 import { KPICard } from './components/KPICard';
 import { LiveFeedTable } from './components/LiveFeedTable';
 import { FootfallChart, DeviceTypeDistribution, RSSIDistribution, DwellTimeChart } from './components/Charts';
-import { Users, UserPlus, Database, Radio, Activity, RefreshCw, Clock, TrendingUp, UserCheck } from 'lucide-react';
+import { Users, UserPlus, Database, Radio, Activity, RefreshCw, Clock, TrendingUp, UserCheck, AlertTriangle } from 'lucide-react';
 import { formatTimeAgo, formatDuration } from './lib/utils';
 
 function App() {
   const {
     loading,
     error,
+    resetting,
     totalDevices,
     activeDevices,
     newDevicesToday,
@@ -19,6 +21,8 @@ function App() {
     observations,
     resetSession,
   } = useAnalytics();
+
+  const [showConfirm, setShowConfirm] = useState(false);
 
   if (error) {
     return (
@@ -64,11 +68,12 @@ function App() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={resetSession}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+              onClick={() => setShowConfirm(true)}
+              disabled={resetting}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl bg-primary/20 text-primary hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw className="w-4 h-4" />
-              New Session
+              <RefreshCw className={`w-4 h-4 ${resetting ? 'animate-spin' : ''}`} />
+              {resetting ? 'Resetting…' : 'New Session'}
             </button>
             <div className="flex items-center gap-3 glass-card px-4 py-2 text-sm">
               <span className="flex h-3 w-3 relative">
@@ -146,6 +151,40 @@ function App() {
         </div>
 
       </div>
+
+      {/* New Session confirmation dialog */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="glass-card p-6 max-w-md w-full mx-4 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-danger/20 text-danger flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Start New Session?</h2>
+                <p className="text-sm text-textSecondary">This will permanently delete all devices, observations, and sessions from the database.</p>
+              </div>
+            </div>
+            <p className="text-sm text-textSecondary border border-white/10 rounded-lg px-3 py-2 bg-white/5">
+              The Android app will continue scanning and repopulate the dashboard automatically once it syncs again.
+            </p>
+            <div className="flex gap-3 justify-end pt-1">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="px-4 py-2 text-sm font-medium rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setShowConfirm(false); resetSession(); }}
+                className="px-4 py-2 text-sm font-medium rounded-xl bg-danger/80 hover:bg-danger text-white transition-colors"
+              >
+                Yes, Reset Everything
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

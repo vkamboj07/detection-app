@@ -7,12 +7,8 @@ import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.util.Log;
-import androidx.core.content.ContextCompat;
 
 import com.example.billboardanalytics.data.Observation;
 
@@ -28,8 +24,14 @@ public class BluetoothScanner {
     private final BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
     private final ObservationCallback callback;
-    
-    private final SimpleDateFormat dateFormat;
+
+    // SimpleDateFormat is NOT thread-safe. BLE callbacks can arrive on different
+    // threads (onScanResult vs onBatchScanResults), so use ThreadLocal.
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return sdf;
+    });
 
     public interface ObservationCallback {
         void onObservationDetected(Observation observation);
@@ -39,13 +41,10 @@ public class BluetoothScanner {
         this.context = context;
         this.callback = callback;
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        
+
         if (bluetoothAdapter != null) {
             this.bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
         }
-        
-        this.dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-        this.dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     @SuppressLint("MissingPermission") // Permissions are handled in Manifest/Activity
@@ -87,7 +86,7 @@ public class BluetoothScanner {
     }
 
     private String getCurrentTimestamp() {
-        return dateFormat.format(new Date());
+        return DATE_FORMAT.get().format(new Date());
     }
 
     // Classic Bluetooth Receiver

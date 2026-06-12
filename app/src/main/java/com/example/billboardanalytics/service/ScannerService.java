@@ -20,6 +20,11 @@ import com.example.billboardanalytics.scanner.WiFiScanner;
 import com.example.billboardanalytics.sync.SupabaseSyncManager;
 import com.example.billboardanalytics.ui.MainActivity;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
 public class ScannerService extends Service {
     private static final String TAG = "ScannerService";
     private static final String CHANNEL_ID = "ScannerServiceChannel";
@@ -28,10 +33,20 @@ public class ScannerService extends Service {
     public static final String ACTION_TRIGGER_SYNC = "com.example.billboardanalytics.ACTION_TRIGGER_SYNC";
     public static final String ACTION_STOP = "com.example.billboardanalytics.ACTION_STOP";
 
+    // Heartbeat: automatically sync any unsent data to the cloud every 60 seconds.
+    // This covers quiet periods where no new detections occur.
+    private static final long HEARTBEAT_INTERVAL_SECONDS = 60;
+
     private BluetoothScanner bluetoothScanner;
     private WiFiScanner wifiScanner;
     private SessionizationEngine engine;
     private SupabaseSyncManager syncManager;
+    private ScheduledExecutorService heartbeatScheduler;
+    private ScheduledFuture<?> heartbeatFuture;
+
+    // Guard against double-starting scanners when onStartCommand is called multiple
+    // times on the same service instance (START_STICKY restart, boot receiver, etc.)
+    private boolean scanningStarted = false;
 
     @Override
     public void onCreate() {
@@ -97,8 +112,15 @@ public class ScannerService extends Service {
                 android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION |
                 android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
 
-            bluetoothScanner.startScanning();
-            wifiScanner.startScanning();
+            if (!scanningStarted) {
+                scanningStarted = true;
+                bluetoothScanner.startScanning();
+                wifiScanner.startScanning();
+
+                // Start periodic heartbeat — automatically pushes any unsent rows to the
+                // cloud every HEARTBEAT_INTERVAL_SECONDS even when scanning is quiet.
+                startHeartbeat();
+            }
         } catch (Exception e) {
             Log.e(TAG, "Failed to start foreground or scanners: " + e.getMessage());
         }
@@ -110,6 +132,8 @@ public class ScannerService extends Service {
     @Override
     public void onDestroy() {
         Log.d(TAG, "ScannerService onDestroy");
+
+        stopHeartbeat();
 
         try {
             stopForeground(true);
@@ -142,6 +166,28 @@ public class ScannerService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    private void startHeartbeat() {
+        if (heartbeatScheduler != null && !heartbeatScheduler.isShutdown()) return;
+        heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
+        heartbeatFuture = heartbeatScheduler.scheduleAtFixedRate(() -> {
+            if (syncManager != null) {
+                Log.d(TAG, "Heartbeat: triggering automatic background sync.");
+                syncManager.syncAsync();
+            }
+        }, HEARTBEAT_INTERVAL_SECONDS, HEARTBEAT_INTERVAL_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private void stopHeartbeat() {
+        if (heartbeatFuture != null) {
+            heartbeatFuture.cancel(false);
+            heartbeatFuture = null;
+        }
+        if (heartbeatScheduler != null) {
+            heartbeatScheduler.shutdownNow();
+            heartbeatScheduler = null;
+        }
     }
 
     private void createNotificationChannel() {

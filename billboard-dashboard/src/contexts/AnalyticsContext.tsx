@@ -12,6 +12,7 @@ interface AnalyticsContextType {
   sessions: Session[];
   loading: boolean;
   error: string | null;
+  resetting: boolean;
   // Computed metrics
   activeDevices: Device[];
   totalDevices: number;
@@ -20,13 +21,13 @@ interface AnalyticsContextType {
   averageDwellTimeMs: number;
   peakHour: string;
   returningVisitors: number;
-  resetSession: () => void;
+  resetSession: () => Promise<void>;
 }
 
 const AnalyticsContext = createContext<AnalyticsContextType | undefined>(undefined);
 
 export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
-  const { devices, observations, sessions, loading, error, resetSession } = useSupabaseData();
+  const { devices, observations, sessions, loading, error, resetting, resetSession } = useSupabaseData();
 
   const metrics = useMemo(() => {
     const now = new Date();
@@ -105,6 +106,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     sessions,
     loading,
     error,
+    resetting,
     ...metrics,
     resetSession,
   };

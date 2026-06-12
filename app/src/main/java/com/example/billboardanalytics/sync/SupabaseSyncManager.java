@@ -43,8 +43,10 @@ public class SupabaseSyncManager {
     private static final String PREFS_NAME = "sync_prefs";
     private static final String KEY_LAST_SYNCED_OBS_ID     = "last_synced_obs_id";
     private static final String KEY_LAST_SYNCED_SESSION_ID = "last_synced_session_id";
-    private static final int    BATCH_SIZE      = 50;
-    private static final long   DEBOUNCE_SECONDS = 10; // collapse rapid calls into one sync every 10 s
+    private static final int    BATCH_SIZE       = 50;
+    private static final long   DEBOUNCE_SECONDS = 10;  // wait this long after last detection before uploading
+    private static final long   MAX_WAIT_SECONDS = 30;  // but never delay more than this — guarantees upload
+                                                         // even during continuous scanning
 
     private final AnalyticsDao    dao;
     private final SharedPreferences prefs;
@@ -53,6 +55,9 @@ public class SupabaseSyncManager {
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private ScheduledFuture<?> pendingSync;
+    // Tracks when the first syncAsync() call in the current burst arrived so we can
+    // enforce MAX_WAIT_SECONDS even if new detections keep resetting the debounce.
+    private long burstStartMs = 0;
 
     public SupabaseSyncManager(Context context, AnalyticsDao dao,
                                String supabaseUrl, String supabaseAnonKey) {
@@ -63,27 +68,45 @@ public class SupabaseSyncManager {
     }
 
     /**
-     * Schedules a sync. Multiple calls within {@code DEBOUNCE_SECONDS} are collapsed
-     * into a single upload — safe to call on every BLE/Wi-Fi detection.
+     * Schedules an automatic background sync triggered by a new scan detection.
+     *
+     * Debounced: collapses rapid calls (every few seconds) into one upload.
+     * Ceiling: guarantees a sync fires within MAX_WAIT_SECONDS of the first call
+     * in a burst, so continuous scanning never starves the upload pipeline.
      */
     public synchronized void syncAsync() {
+        long now = System.currentTimeMillis();
+
+        if (pendingSync == null || pendingSync.isDone()) {
+            // Start of a new burst — record when it began
+            burstStartMs = now;
+        }
+
+        long msSinceBurstStart = now - burstStartMs;
+        long remainingCeilingMs = (MAX_WAIT_SECONDS * 1000) - msSinceBurstStart;
+
+        // How long to wait: the shorter of the debounce window and the remaining ceiling
+        long delayMs = Math.min(DEBOUNCE_SECONDS * 1000, Math.max(0, remainingCeilingMs));
+
         if (pendingSync != null && !pendingSync.isDone()) {
-            pendingSync.cancel(false); // reset the debounce timer
+            pendingSync.cancel(false);
         }
         try {
-            pendingSync = scheduler.schedule(this::performSync, DEBOUNCE_SECONDS, TimeUnit.SECONDS);
+            pendingSync = scheduler.schedule(this::performSync, delayMs, TimeUnit.MILLISECONDS);
         } catch (RejectedExecutionException e) {
             Log.w(TAG, "syncAsync rejected — scheduler is shut down");
         }
     }
 
     /**
-     * Forces an immediate, asynchronous upload on the background thread.
+     * Manual override: forces an immediate upload, bypassing the debounce.
+     * Only call this from explicit user action (e.g. the "Sync Data" button).
      */
     public synchronized void syncImmediately() {
         if (pendingSync != null && !pendingSync.isDone()) {
             pendingSync.cancel(false);
         }
+        burstStartMs = 0; // reset burst so next auto-sync starts fresh
         try {
             scheduler.execute(this::performSync);
         } catch (RejectedExecutionException e) {
