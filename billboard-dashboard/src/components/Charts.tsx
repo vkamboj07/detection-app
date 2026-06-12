@@ -157,9 +157,9 @@ export function RSSIDistribution() {
     };
 
     observations.forEach(obs => {
-      if (obs.rssi > -60)       buckets['Excellent (>-60)']++;
-      else if (obs.rssi > -70)  buckets['Good (-60–-70)']++;
-      else if (obs.rssi > -80)  buckets['Fair (-70–-80)']++;
+      if (obs.rssi >= -60)       buckets['Excellent (>-60)']++;
+      else if (obs.rssi >= -70)  buckets['Good (-60–-70)']++;
+      else if (obs.rssi >= -80)  buckets['Fair (-70–-80)']++;
       else                      buckets['Poor (<-80)']++;
     });
 

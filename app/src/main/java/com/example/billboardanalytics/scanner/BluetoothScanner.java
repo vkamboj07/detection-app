@@ -7,7 +7,10 @@ import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanRecord;
 import android.bluetooth.le.ScanResult;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.util.Log;
 
 import com.example.billboardanalytics.data.Observation;
@@ -19,14 +22,14 @@ import java.util.TimeZone;
 
 public class BluetoothScanner {
     private static final String TAG = "BluetoothScanner";
-    
+
     private final Context context;
     private final BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
     private final ObservationCallback callback;
 
-    // SimpleDateFormat is NOT thread-safe. BLE callbacks can arrive on different
-    // threads (onScanResult vs onBatchScanResults), so use ThreadLocal.
+    private boolean isScanning = false;
+
     private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -47,18 +50,57 @@ public class BluetoothScanner {
         }
     }
 
-    @SuppressLint("MissingPermission") // Permissions are handled in Manifest/Activity
+    private final BroadcastReceiver classicBtReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context ctx, Intent intent) {
+            if (BluetoothDevice.ACTION_FOUND.equals(intent.getAction())) {
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                int rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE);
+
+                if (device != null) {
+                    String source;
+                    int type = device.getType();
+                    // TYPE_DUAL (3) or TYPE_BREDR (1) = classic BT, TYPE_LE (2) = BLE
+                    if (type == BluetoothDevice.DEVICE_TYPE_LE) {
+                        source = "BLE";
+                    } else {
+                        source = "BT_CLASSIC";
+                    }
+
+                    Observation obs = new Observation(source, device.getAddress(), rssi, getCurrentTimestamp());
+                    if (callback != null) {
+                        callback.onObservationDetected(obs);
+                    }
+                    Log.d(TAG, "Classic BT detected: " + device.getAddress() + " RSSI=" + rssi + " type=" + source);
+                }
+            }
+        }
+    };
+
+    @SuppressLint("MissingPermission")
     public void startScanning() {
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled()) {
             Log.e(TAG, "Bluetooth is not enabled or not supported");
             return;
         }
 
+        if (isScanning) return;
+        isScanning = true;
+
+        // Register classic BT discovery receiver
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        context.registerReceiver(classicBtReceiver, filter);
+
         startLeScan();
+        startClassicDiscovery();
     }
 
     @SuppressLint("MissingPermission")
     public void stopScanning() {
+        if (!isScanning) return;
+        isScanning = false;
+
+        // Stop BLE scan
         if (bluetoothLeScanner != null) {
             try {
                 bluetoothLeScanner.stopScan(leScanCallback);
@@ -66,11 +108,24 @@ public class BluetoothScanner {
                 Log.e(TAG, "Error stopping BLE scan: " + e.getMessage());
             }
         }
+
+        // Stop classic BT discovery
+        try {
+            bluetoothAdapter.cancelDiscovery();
+        } catch (Exception e) {
+            Log.e(TAG, "Error stopping BT discovery: " + e.getMessage());
+        }
+
+        // Unregister receiver
+        try {
+            context.unregisterReceiver(classicBtReceiver);
+        } catch (Exception e) {
+            Log.e(TAG, "Error unregistering BT receiver: " + e.getMessage());
+        }
     }
 
     @SuppressLint("MissingPermission")
     private void startLeScan() {
-        // Re-fetch the scanner in case BT was off when this object was constructed
         if (bluetoothLeScanner == null && bluetoothAdapter != null) {
             bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
         }
@@ -81,7 +136,15 @@ public class BluetoothScanner {
             bluetoothLeScanner.startScan(null, settings, leScanCallback);
             Log.d(TAG, "Started BLE Scanning with SCAN_MODE_LOW_LATENCY");
         } else {
-            Log.e(TAG, "BluetoothLeScanner unavailable — BT may still be off");
+            Log.e(TAG, "BluetoothLeScanner unavailable");
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private void startClassicDiscovery() {
+        if (bluetoothAdapter != null && !bluetoothAdapter.isDiscovering()) {
+            bluetoothAdapter.startDiscovery();
+            Log.d(TAG, "Started Classic BT discovery");
         }
     }
 
@@ -89,8 +152,6 @@ public class BluetoothScanner {
         return DATE_FORMAT.get().format(new Date());
     }
 
-    // Classic Bluetooth Receiver
-    // BLE Scan Callback
     private final ScanCallback leScanCallback = new ScanCallback() {
         @SuppressLint("MissingPermission")
         @Override
@@ -102,14 +163,13 @@ public class BluetoothScanner {
 
             if (device != null) {
                 Observation obs = new Observation("BLE", device.getAddress(), rssi, getCurrentTimestamp());
-                
+
                 if (record != null) {
                     byte[] rawBytes = record.getBytes();
                     if (rawBytes != null) {
                         obs.setAdvertisementData(bytesToHex(rawBytes));
                     }
-                    
-                    // Convert Manufacturer Data to Hex String
+
                     if (record.getManufacturerSpecificData() != null && record.getManufacturerSpecificData().size() > 0) {
                         int key = record.getManufacturerSpecificData().keyAt(0);
                         byte[] mfBytes = record.getManufacturerSpecificData().get(key);
@@ -118,7 +178,7 @@ public class BluetoothScanner {
                         }
                     }
                 }
-                
+
                 if (callback != null) {
                     callback.onObservationDetected(obs);
                 }

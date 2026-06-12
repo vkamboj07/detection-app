@@ -6,12 +6,14 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import com.example.billboardanalytics.BuildConfig;
 import com.example.billboardanalytics.R;
 import com.example.billboardanalytics.data.AppDatabase;
 import com.example.billboardanalytics.engine.SessionizationEngine;
@@ -57,9 +59,9 @@ public class ScannerService extends Service {
 
         AppDatabase db = AppDatabase.getDatabase(getApplicationContext());
 
-        // Read Supabase credentials from string resources (set these in res/values/strings.xml)
-        String supabaseUrl  = getString(R.string.supabase_url);
-        String supabaseKey  = getString(R.string.supabase_anon_key);
+        // Read Supabase credentials from BuildConfig (set in app/build.gradle)
+        String supabaseUrl  = BuildConfig.SUPABASE_URL;
+        String supabaseKey  = BuildConfig.SUPABASE_ANON_KEY;
         syncManager = new SupabaseSyncManager(
                 getApplicationContext(), db.analyticsDao(), supabaseUrl, supabaseKey);
 
@@ -108,9 +110,13 @@ public class ScannerService extends Service {
                 .build();
 
         try {
-            startForeground(NOTIFICATION_ID, notification,
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION |
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIFICATION_ID, notification,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION |
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+            } else {
+                startForeground(NOTIFICATION_ID, notification);
+            }
 
             if (!scanningStarted) {
                 scanningStarted = true;
