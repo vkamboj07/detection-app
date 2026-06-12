@@ -62,3 +62,11 @@ vcs.xml
 
 # VS Code
 .vscode/
+
+# IDE state — machine-specific, not source code
+.idea/deploymentTargetSelector.xml
+
+# Environment files — never commit secrets
+billboard-dashboard/.env
+billboard-dashboard/.env.local
+billboard-dashboard/.env.*.local
