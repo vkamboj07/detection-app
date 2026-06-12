@@ -3,9 +3,7 @@ package com.example.billboardanalytics.util;
 /**
  * Single source of truth for mapping a device source + identifier to a
  * human-readable category.
- *
  * Wi-Fi BSSIDs always come from access-points/routers so they are labelled "Router/AP".
- *
  * For BLE / BT Classic devices the first three octets of the MAC address form the
  * OUI (Organisationally Unique Identifier).  We check against a small curated list
  * of well-known manufacturer OUI prefixes to produce meaningful labels.  Devices
@@ -21,7 +19,6 @@ public final class DeviceCategory {
 
     /**
      * Returns a category label for a device.
-     *
      * @param source           The scan source: "WIFI", "BLE", or "BT_CLASSIC".
      * @param deviceIdentifier The MAC/BSSID string (may be null).
      * @return A human-readable category string.

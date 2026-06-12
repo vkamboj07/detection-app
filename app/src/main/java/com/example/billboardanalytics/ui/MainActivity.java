@@ -36,6 +36,7 @@ import java.util.concurrent.Executors;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.util.Log;
 import android.os.Build;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -82,7 +83,13 @@ public class MainActivity extends AppCompatActivity {
         Button btnDebugLog = findViewById(R.id.btnDebugLog);
         Button btnSyncData = findViewById(R.id.btnSyncData);
 
-        btnStartTracker.setOnClickListener(v -> toggleTracker());
+        btnStartTracker.setOnClickListener(v -> {
+            if (isTracking) {
+                stopScannerService();
+            } else {
+                startNewSession();
+            }
+        });
         btnLiveDevices.setOnClickListener(v -> startActivity(new Intent(this, NearbyDevicesActivity.class)));
         btnExportData.setOnClickListener(v -> exportData());
         btnDebugLog.setOnClickListener(v -> startActivity(new Intent(this, DebugLogActivity.class)));
@@ -110,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.BLUETOOTH_CONNECT,
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION,
                     Manifest.permission.POST_NOTIFICATIONS
             };
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -118,6 +126,12 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.BLUETOOTH_CONNECT,
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.ACCESS_COARSE_LOCATION
+            };
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            return new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
             };
         } else {
             return new String[]{
@@ -139,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (!missingPermissions.isEmpty()) {
             ActivityCompat.requestPermissions(this, missingPermissions.toArray(new String[0]), 1001);
-        } else {
+        } else if (isTracking) {
             startScannerService();
         }
     }
@@ -155,8 +169,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 }
             }
-            if (allGranted) {
-                // startScannerService() is guarded against double-starts internally
+            if (allGranted && isTracking) {
                 startScannerService();
             }
         }
@@ -177,24 +190,18 @@ public class MainActivity extends AppCompatActivity {
     private void stopScannerService() {
         Intent serviceIntent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
         serviceIntent.setAction(com.example.billboardanalytics.service.ScannerService.ACTION_STOP);
-        startService(serviceIntent);
+        startForegroundService(serviceIntent);
         isTracking = false;
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
                 .putBoolean(KEY_IS_TRACKING, false).apply();
         updateTrackerButton();
     }
 
-    private void toggleTracker() {
-        if (isTracking) {
-            stopScannerService();
-        } else {
-            // Start a new session: clear local Room data so yesterday's data doesn't
-            // skew today's metrics. The sync high-water marks are also reset so all
-            // fresh data will be re-pushed to Supabase.
-            AppDatabase db = AppDatabase.getDatabase(this);
-            trackerExecutor.execute(() -> {
+    private void startNewSession() {
+        AppDatabase db = AppDatabase.getDatabase(this);
+        trackerExecutor.execute(() -> {
+            try {
                 db.clearAllTables();
-                // Reset sync high-water marks so fresh rows get pushed to Supabase
                 getSharedPreferences("sync_prefs", MODE_PRIVATE).edit()
                         .remove("last_synced_obs_id")
                         .remove("last_synced_session_id")
@@ -203,8 +210,13 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "Previous data cleared. New tracking session started.", Toast.LENGTH_LONG).show();
                     startScannerService();
                 });
-            });
-        }
+            } catch (Exception e) {
+                Log.e("MainActivity", "Failed to clear database for new session", e);
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Error starting new session: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
     }
 
     private void updateTrackerButton() {

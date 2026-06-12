@@ -12,6 +12,13 @@ android {
         targetSdk 36
         versionCode 1
         versionName "1.0"
+
+        buildConfigField("String", "SUPABASE_URL", "\"https://zzzazvoeweecddidqysy.supabase.co\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"sb_publishable_rpoU-XbKNvx5IE4iobJWzg_60wc823q\"")
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     buildTypes {
@@ -46,4 +53,7 @@ dependencies {
     
     // MPAndroidChart
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+
+    // WorkManager for background work (boot, deferred service start)
+    implementation 'androidx.work:work-runtime:2.9.0'
 }

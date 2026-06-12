@@ -37,7 +37,11 @@ public class WiFiScanner {
     private final WifiManager wifiManager;
     private final ObservationCallback callback;
 
-    private final SimpleDateFormat dateFormat;
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return sdf;
+    });
     private boolean isScanning = false;
     private final Handler handler = new Handler(Looper.getMainLooper());
     // Background executor for the actual getScanResults() Binder call so we
@@ -55,8 +59,6 @@ public class WiFiScanner {
         this.wifiManager = (WifiManager) context.getApplicationContext()
                 .getSystemService(Context.WIFI_SERVICE);
 
-        this.dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-        this.dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     public void startScanning() {
@@ -96,6 +98,14 @@ public class WiFiScanner {
 
     private void readCachedResults() {
         try {
+            // Attempt to trigger a fresh scan. On many devices this is throttled and
+            // returns false, but when it works it triggers the OS to refresh the cache.
+            try {
+                wifiManager.startScan();
+            } catch (Exception ignored) {
+                // Throttled or missing permission — rely on cache polling instead.
+            }
+
             List<ScanResult> results = wifiManager.getScanResults();
             if (results == null || results.isEmpty()) {
                 Log.d(TAG, "Wi-Fi cache is empty — no networks in OS cache yet.");
@@ -126,6 +136,6 @@ public class WiFiScanner {
     }
 
     private String getCurrentTimestamp() {
-        return dateFormat.format(new Date());
+        return DATE_FORMAT.get().format(new Date());
     }
 }
