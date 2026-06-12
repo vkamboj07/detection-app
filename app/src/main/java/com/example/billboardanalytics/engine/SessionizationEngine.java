@@ -96,8 +96,7 @@ public class SessionizationEngine {
                     latestSession.endTime = timestamp;
                     latestSession.duration = currentTime - parseTimestamp(latestSession.startTime);
                     dao.updateSession(latestSession);
-                    // Sync the updated session duration to Supabase
-                    syncManager.syncAsync();
+                    // duration updated — automatic sync will pick it up
                 }
             }
 
