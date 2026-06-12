@@ -110,9 +110,9 @@ public class AnalyticsEngine {
                 String source = device.source != null ? device.source : "UNKNOWN";
 
                 // Map Protocols
-                if (source.equals("WIFI")) {
+                if ("WIFI".equals(source)) {
                     sourceDistribution.merge("Wi-Fi", 1, Integer::sum);
-                } else if (source.equals("BLE") || source.equals("BT_CLASSIC")) {
+                } else if ("BLE".equals(source) || "BT_CLASSIC".equals(source)) {
                     sourceDistribution.merge("Bluetooth", 1, Integer::sum);
                 } else {
                     sourceDistribution.merge("Unknown", 1, Integer::sum);
@@ -126,15 +126,21 @@ public class AnalyticsEngine {
 
         // Peak activity: compute how many minutes ago the centre of the peak hour was.
         // e.g. if peakHour=14 the centre is 14:30. If it's currently 15:10, diff = 40 mins.
-        // If the peak hour hasn't happened yet today (future hour), report 0.
-        Calendar peakCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        peakCal.setTimeInMillis(now);
-        peakCal.set(Calendar.HOUR_OF_DAY, peakHour);
-        peakCal.set(Calendar.MINUTE, 30); // Approximate centre of the peak hour
-        peakCal.set(Calendar.SECOND, 0);
-        peakCal.set(Calendar.MILLISECOND, 0);
-        long peakDiffMins = (now - peakCal.getTimeInMillis()) / 60000;
-        if (peakDiffMins < 0) peakDiffMins = 0; // peak hour is in the future — show 0
+        // If no sessions today, report N/A.
+        String peakActivityText;
+        if (todaySessions.isEmpty()) {
+            peakActivityText = "N/A";
+        } else {
+            Calendar peakCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            peakCal.setTimeInMillis(now);
+            peakCal.set(Calendar.HOUR_OF_DAY, peakHour);
+            peakCal.set(Calendar.MINUTE, 30); // Approximate centre of the peak hour
+            peakCal.set(Calendar.SECOND, 0);
+            peakCal.set(Calendar.MILLISECOND, 0);
+            long peakDiffMins = (now - peakCal.getTimeInMillis()) / 60000;
+            if (peakDiffMins < 0) peakDiffMins = 0; // peak hour is in the future — show 0
+            peakActivityText = peakDiffMins + " mins ago";
+        }
 
         // 6. Calculate Last 5 Minutes Trend
         Map<Integer, Integer> last5MinsTrend = new HashMap<>();
@@ -165,8 +171,8 @@ public class AnalyticsEngine {
         metrics.currentNearbyDevices = dao.getNearbyDevicesCount(fiveMinsAgoStr);
         metrics.returningVisitors = returningVisitorsToday.size();
         metrics.averageDwellTimeMs = todaySessions.isEmpty() ? 0 : totalDwellTime / todaySessions.size();
-        metrics.peakHour = String.format(Locale.US, "%02d:00 - %02d:00", peakHour, (peakHour + 1) % 24);
-        metrics.peakActivityMinsAgo = peakDiffMins + " mins ago";
+        metrics.peakHour = todaySessions.isEmpty() ? "N/A" : String.format(Locale.US, "%02d:00 - %02d:00", peakHour, (peakHour + 1) % 24);
+        metrics.peakActivityMinsAgo = peakActivityText;
         metrics.hourlyTrafficTrend = hourlyTrend;
         metrics.last5MinutesTrend = last5MinsTrend;
         metrics.deviceSourceDistribution = sourceDistribution;

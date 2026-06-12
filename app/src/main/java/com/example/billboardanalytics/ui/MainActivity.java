@@ -31,6 +31,8 @@ import com.github.mikephil.charting.data.PieEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -52,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean isTracking = false;
     private Button btnStartTracker;
+    private ExecutorService trackerExecutor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,6 +87,8 @@ public class MainActivity extends AppCompatActivity {
         btnExportData.setOnClickListener(v -> exportData());
         btnDebugLog.setOnClickListener(v -> startActivity(new Intent(this, DebugLogActivity.class)));
         btnSyncData.setOnClickListener(v -> triggerManualSync());
+
+        trackerExecutor = Executors.newSingleThreadExecutor();
 
         setupCharts();
 
@@ -171,7 +176,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void stopScannerService() {
         Intent serviceIntent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
-        stopService(serviceIntent);
+        serviceIntent.setAction(com.example.billboardanalytics.service.ScannerService.ACTION_STOP);
+        startService(serviceIntent);
         isTracking = false;
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
                 .putBoolean(KEY_IS_TRACKING, false).apply();
@@ -182,10 +188,17 @@ public class MainActivity extends AppCompatActivity {
         if (isTracking) {
             stopScannerService();
         } else {
-            // Start a new session: clear data then start service
+            // Start a new session: clear local Room data so yesterday's data doesn't
+            // skew today's metrics. The sync high-water marks are also reset so all
+            // fresh data will be re-pushed to Supabase.
             AppDatabase db = AppDatabase.getDatabase(this);
-            java.util.concurrent.Executors.newSingleThreadExecutor().execute(() -> {
+            trackerExecutor.execute(() -> {
                 db.clearAllTables();
+                // Reset sync high-water marks so fresh rows get pushed to Supabase
+                getSharedPreferences("sync_prefs", MODE_PRIVATE).edit()
+                        .remove("last_synced_obs_id")
+                        .remove("last_synced_session_id")
+                        .apply();
                 runOnUiThread(() -> {
                     Toast.makeText(this, "Previous data cleared. New tracking session started.", Toast.LENGTH_LONG).show();
                     startScannerService();
@@ -328,9 +341,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void triggerManualSync() {
+        if (!isTracking) {
+            Toast.makeText(this, "Start tracking first to sync data.", Toast.LENGTH_SHORT).show();
+            return;
+        }
         Intent intent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
         intent.setAction(com.example.billboardanalytics.service.ScannerService.ACTION_TRIGGER_SYNC);
-        startForegroundService(intent);
+        startService(intent);
         Toast.makeText(this, "Immediate Cloud Sync Triggered!", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (trackerExecutor != null) {
+            trackerExecutor.shutdownNow();
+        }
     }
 }

@@ -61,7 +61,11 @@ public class BluetoothScanner {
     @SuppressLint("MissingPermission")
     public void stopScanning() {
         if (bluetoothLeScanner != null) {
-            bluetoothLeScanner.stopScan(leScanCallback);
+            try {
+                bluetoothLeScanner.stopScan(leScanCallback);
+            } catch (Exception e) {
+                Log.e(TAG, "Error stopping BLE scan: " + e.getMessage());
+            }
         }
     }
 

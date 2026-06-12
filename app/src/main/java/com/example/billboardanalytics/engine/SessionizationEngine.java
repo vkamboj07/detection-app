@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class SessionizationEngine {
     private static final String TAG = "SessionizationEngine";
@@ -95,6 +96,8 @@ public class SessionizationEngine {
                     latestSession.endTime = timestamp;
                     latestSession.duration = currentTime - parseTimestamp(latestSession.startTime);
                     dao.updateSession(latestSession);
+                    // Sync the updated session duration to Supabase
+                    syncManager.syncAsync();
                 }
             }
 
@@ -143,7 +146,12 @@ public class SessionizationEngine {
 
     /** Call from the service's onDestroy to release threads and flush any pending sync. */
     public void shutdown() {
-        executor.shutdownNow();
+        executor.shutdown();
+        try {
+            executor.awaitTermination(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+        }
         syncManager.shutdown();
     }
 

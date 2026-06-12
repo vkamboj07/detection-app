@@ -50,6 +50,13 @@ public interface AnalyticsDao {
     
     @Query("SELECT * FROM sessions WHERE device_id = :deviceId ORDER BY start_time ASC")
     List<SessionEntity> getAllSessionsForDevice(long deviceId);
+
+    /**
+     * Returns up to {@code limit} sessions with id > {@code afterId}, ordered ascending.
+     * Used by SupabaseSyncManager to fetch only rows not yet uploaded.
+     */
+    @Query("SELECT * FROM sessions WHERE id > :afterId ORDER BY id ASC LIMIT :limit")
+    List<SessionEntity> getSessionsAfter(long afterId, int limit);
     
     @Query("SELECT COUNT(*) FROM observations WHERE device_id = :deviceId AND timestamp >= :startTime AND timestamp <= :endTime")
     int getObservationCountForSession(long deviceId, String startTime, String endTime);

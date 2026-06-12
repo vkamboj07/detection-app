@@ -26,6 +26,7 @@ public class ScannerService extends Service {
     private static final int NOTIFICATION_ID = 1;
 
     public static final String ACTION_TRIGGER_SYNC = "com.example.billboardanalytics.ACTION_TRIGGER_SYNC";
+    public static final String ACTION_STOP = "com.example.billboardanalytics.ACTION_STOP";
 
     private BluetoothScanner bluetoothScanner;
     private WiFiScanner wifiScanner;
@@ -62,12 +63,20 @@ public class ScannerService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "ScannerService onStartCommand");
 
-        if (intent != null && ACTION_TRIGGER_SYNC.equals(intent.getAction())) {
-            Log.d(TAG, "Sync action triggered via Intent");
-            if (syncManager != null) {
-                syncManager.syncImmediately();
+        if (intent != null) {
+            if (ACTION_STOP.equals(intent.getAction())) {
+                Log.d(TAG, "Stop action triggered via Intent");
+                stopForeground(true);
+                stopSelf();
+                return START_NOT_STICKY;
             }
-            return START_STICKY;
+            if (ACTION_TRIGGER_SYNC.equals(intent.getAction())) {
+                Log.d(TAG, "Sync action triggered via Intent");
+                if (syncManager != null) {
+                    syncManager.syncImmediately();
+                }
+                return START_STICKY;
+            }
         }
 
         Intent notificationIntent = new Intent(this, MainActivity.class);
@@ -100,12 +109,33 @@ public class ScannerService extends Service {
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
         Log.d(TAG, "ScannerService onDestroy");
 
-        if (bluetoothScanner != null) bluetoothScanner.stopScanning();
-        if (wifiScanner != null) wifiScanner.stopScanning();
-        if (engine != null) engine.shutdown();
+        try {
+            stopForeground(true);
+        } catch (Exception e) {
+            Log.e(TAG, "Error stopping foreground: " + e.getMessage());
+        }
+
+        try {
+            if (bluetoothScanner != null) bluetoothScanner.stopScanning();
+        } catch (Exception e) {
+            Log.e(TAG, "Error stopping Bluetooth scanner: " + e.getMessage());
+        }
+
+        try {
+            if (wifiScanner != null) wifiScanner.stopScanning();
+        } catch (Exception e) {
+            Log.e(TAG, "Error stopping Wi-Fi scanner: " + e.getMessage());
+        }
+
+        try {
+            if (engine != null) engine.shutdown();
+        } catch (Exception e) {
+            Log.e(TAG, "Error shutting down engine: " + e.getMessage());
+        }
+
+        super.onDestroy();
     }
 
     @Nullable

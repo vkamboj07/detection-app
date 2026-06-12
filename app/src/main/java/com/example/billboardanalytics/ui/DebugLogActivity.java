@@ -19,15 +19,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class DebugLogActivity extends AppCompatActivity {
 
     private TextView tvJsonOutput;
+    private ExecutorService debugExecutor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        debugExecutor = Executors.newSingleThreadExecutor();
         setContentView(R.layout.activity_debug_log);
 
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
@@ -46,7 +49,7 @@ public class DebugLogActivity extends AppCompatActivity {
 
     private void loadSessionHistoryJson() {
         tvJsonOutput.setText("Loading...");
-        Executors.newSingleThreadExecutor().execute(() -> {
+        debugExecutor.execute(() -> {
             AppDatabase db = AppDatabase.getDatabase(getApplicationContext());
             List<DeviceEntity> devices = db.analyticsDao().getAllDevices();
 
@@ -80,12 +83,20 @@ public class DebugLogActivity extends AppCompatActivity {
 
     private void clearDatabase() {
         tvJsonOutput.setText("Clearing database...");
-        Executors.newSingleThreadExecutor().execute(() -> {
+        debugExecutor.execute(() -> {
             AppDatabase.getDatabase(getApplicationContext()).clearAllTables();
             runOnUiThread(() -> {
                 tvJsonOutput.setText("Database cleared.");
                 Toast.makeText(this, "All data cleared.", Toast.LENGTH_SHORT).show();
             });
         });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (debugExecutor != null) {
+            debugExecutor.shutdownNow();
+        }
     }
 }
