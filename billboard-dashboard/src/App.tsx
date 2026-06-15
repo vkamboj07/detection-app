@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAnalytics } from './contexts/AnalyticsContext';
 import { KPICard } from './components/KPICard';
 import { LiveFeedTable } from './components/LiveFeedTable';
-import { FootfallChart, DeviceTypeDistribution, RSSIDistribution, DwellTimeChart } from './components/Charts';
+import { FootfallChart, DeviceTypeDistribution, CategoryDistribution, RSSIDistribution, DwellTimeChart } from './components/Charts';
 import { Users, UserPlus, Database, Radio, Activity, RefreshCw, Clock, TrendingUp, UserCheck, AlertTriangle } from 'lucide-react';
 import { formatTimeAgo, formatDuration } from './lib/utils';
 
@@ -91,7 +91,7 @@ function App() {
         {/* KPI Grid — Row 1 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <KPICard
-            title="Total Devices Seen"
+            title="Visitors Today"
             value={totalDevices.toLocaleString()}
             icon={Users}
           />
@@ -139,9 +139,12 @@ function App() {
             <FootfallChart />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <DeviceTypeDistribution />
-              <RSSIDistribution />
+              <CategoryDistribution />
             </div>
-            <DwellTimeChart />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <RSSIDistribution />
+              <DwellTimeChart />
+            </div>
           </div>
 
           {/* Live Feed Section */}

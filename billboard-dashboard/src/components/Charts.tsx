@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useAnalytics } from '../contexts/AnalyticsContext';
+import { resolveDeviceCategory } from '../lib/deviceCategory';
 import {
   LineChart,
   Line,
@@ -15,7 +16,14 @@ import {
   Bar,
   Legend,
 } from 'recharts';
-import { format, subMinutes } from 'date-fns';
+import { subMinutes } from 'date-fns';
+
+/** Format a Date as "HH:mm" in UTC — matches the UTC timestamps the Android app stores. */
+function formatUTCTime(date: Date): string {
+  const hh = String(date.getUTCHours()).padStart(2, '0');
+  const mm = String(date.getUTCMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
 
 const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
 
@@ -40,23 +48,24 @@ export function FootfallChart() {
 
     const recentObs = observations.filter(o => new Date(o.timestamp) >= lastHour);
 
-    // Align to the current 5-minute boundary
+    // Align to the current 5-minute boundary in UTC so labels match stored timestamps
     const alignedNow = new Date(now);
-    alignedNow.setMinutes(Math.floor(now.getMinutes() / 5) * 5, 0, 0);
+    alignedNow.setUTCMinutes(Math.floor(now.getUTCMinutes() / 5) * 5, 0, 0);
 
     // 12 buckets × 5 min = last 60 minutes
     const buckets: Record<string, { time: string; count: number; unique: Set<number> }> = {};
     for (let i = 0; i < 12; i++) {
       const bucketTime = subMinutes(alignedNow, i * 5);
-      const key = format(bucketTime, 'HH:mm');
+      const key = formatUTCTime(bucketTime);
       buckets[key] = { time: key, count: 0, unique: new Set() };
     }
 
     recentObs.forEach(obs => {
       const time = new Date(obs.timestamp);
+      // Snap to the 5-minute UTC bucket for this observation
       const bucketTime = new Date(time);
-      bucketTime.setMinutes(Math.floor(time.getMinutes() / 5) * 5, 0, 0);
-      const key = format(bucketTime, 'HH:mm');
+      bucketTime.setUTCMinutes(Math.floor(time.getUTCMinutes() / 5) * 5, 0, 0);
+      const key = formatUTCTime(bucketTime);
       if (buckets[key]) {
         buckets[key].count++;
         buckets[key].unique.add(obs.device_id);
@@ -94,19 +103,20 @@ export function DeviceTypeDistribution() {
 
   const data = useMemo(() => {
     let wifi = 0;
-    let ble = 0;
-    let btClassic = 0;
+    let bluetooth = 0;
+    let unknown = 0;
 
     devices.forEach(d => {
-      if (d.source?.toUpperCase().includes('WIFI')) wifi++;
-      else if (d.source?.toUpperCase() === 'BLE') ble++;
-      else btClassic++;
+      const src = d.source?.toUpperCase() ?? '';
+      if (src.includes('WIFI')) wifi++;
+      else if (src === 'BLE' || src === 'BT_CLASSIC') bluetooth++;
+      else unknown++;
     });
 
     return [
       { name: 'Wi-Fi', value: wifi },
-      { name: 'BLE', value: ble },
-      { name: 'BT Classic', value: btClassic },
+      { name: 'Bluetooth', value: bluetooth },
+      { name: 'Unknown', value: unknown },
     ].filter(d => d.value > 0);
   }, [devices]);
 
@@ -131,6 +141,59 @@ export function DeviceTypeDistribution() {
             >
               {data.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip contentStyle={TOOLTIP_STYLE.contentStyle} />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Category distribution (Apple, Samsung, Mobile Device, etc.)
+// Uses the same logic as Android's DeviceCategory.resolve() so the dashboard
+// pie chart matches the mobile app's category pie chart.
+// ---------------------------------------------------------------------------
+export function CategoryDistribution() {
+  const { devices } = useAnalytics();
+
+  const data = useMemo(() => {
+    const counts: Record<string, number> = {};
+    devices.forEach(d => {
+      const cat = resolveDeviceCategory(d.source, d.device_identifier);
+      counts[cat] = (counts[cat] ?? 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [devices]);
+
+  const CATEGORY_COLORS = ['#E91E63', '#FF9800', '#FFC107', '#4CAF50', '#00BCD4'];
+
+  return (
+    <div className="glass-card p-6 h-96">
+      <h3 className="text-lg font-semibold mb-6">Device Categories</h3>
+      {data.length === 0 ? (
+        <div className="flex items-center justify-center h-full text-textSecondary text-sm">
+          No data yet
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={100}
+              paddingAngle={5}
+              dataKey="value"
+            >
+              {data.map((_, index) => (
+                <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
               ))}
             </Pie>
             <Tooltip contentStyle={TOOLTIP_STYLE.contentStyle} />

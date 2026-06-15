@@ -10,7 +10,7 @@ export function useSupabaseData() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [observations, setObservations] = useState<Observation[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!supabaseConfigError);
   const [error, setError] = useState<string | null>(supabaseConfigError);
   const [sessionKey, setSessionKey] = useState(0);
   const [resetting, setResetting] = useState(false);
@@ -62,7 +62,6 @@ export function useSupabaseData() {
   useEffect(() => {
     // Don't attempt any network calls if credentials are missing
     if (supabaseConfigError) {
-      setLoading(false);
       return;
     }
 
@@ -72,24 +71,25 @@ export function useSupabaseData() {
       try {
         setLoading(true);
 
-        // Fetch last 24 hours of data for initial load
-        const oneDayAgo = new Date();
-        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+        // Fetch today's data (UTC calendar day) to match the Android app's
+        // AnalyticsEngine.generateMetricsForToday() time window.
+        const now = new Date();
+        const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
         const [devicesRes, obsRes, sessionsRes] = await Promise.all([
           supabase.from('devices').select('*'),
           supabase
             .from('observations')
             .select('*')
-            .gte('timestamp', oneDayAgo.toISOString())
+            .gte('timestamp', startOfToday.toISOString())
             .order('timestamp', { ascending: false })
-            .limit(5000),
+            .limit(10000),
           supabase
             .from('sessions')
             .select('*')
-            .gte('start_time', oneDayAgo.toISOString())
+            .gte('start_time', startOfToday.toISOString())
             .order('start_time', { ascending: false })
-            .limit(2000),
+            .limit(10000),
         ]);
 
         if (devicesRes.error) throw devicesRes.error;

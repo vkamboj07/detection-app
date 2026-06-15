@@ -87,6 +87,13 @@ public class MainActivity extends AppCompatActivity {
             if (isTracking) {
                 stopScannerService();
             } else {
+                // Mark as tracking before the permission flow so that when
+                // checkAndRequestPermissions() eventually calls startScannerService()
+                // (either directly or via onRequestPermissionsResult), isTracking is
+                // already true and the service actually starts.
+                isTracking = true;
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                        .putBoolean(KEY_IS_TRACKING, true).apply();
                 startNewSession();
             }
         });
@@ -108,52 +115,73 @@ public class MainActivity extends AppCompatActivity {
         checkAndRequestPermissions();
     }
 
-    @android.annotation.SuppressLint("InlinedApi")
-    @NonNull
-    private String[] getRequiredPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return new String[]{
-                    Manifest.permission.BLUETOOTH_SCAN,
-                    Manifest.permission.BLUETOOTH_CONNECT,
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION,
-                    Manifest.permission.POST_NOTIFICATIONS
-            };
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            return new String[]{
-                    Manifest.permission.BLUETOOTH_SCAN,
-                    Manifest.permission.BLUETOOTH_CONNECT,
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-            };
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            return new String[]{
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            };
-        } else {
-            return new String[]{
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-            };
-        }
-    }
+    // Request codes for the two-stage permission flow
+    private static final int REQ_CORE_PERMISSIONS       = 1001;
+    private static final int REQ_BACKGROUND_LOCATION    = 1002;
+    private static final int REQ_POST_NOTIFICATIONS     = 1003;
 
+    /**
+     * Stage 1 — core permissions: Bluetooth + fine/coarse location + notifications (API 33+).
+     * ACCESS_BACKGROUND_LOCATION is intentionally excluded here; it must be requested
+     * in its own separate dialog AFTER fine location is already granted (Android 11+ rule).
+     */
     private void checkAndRequestPermissions() {
-        String[] requiredPermissions = getRequiredPermissions();
+        List<String> missing = new ArrayList<>();
 
-        List<String> missingPermissions = new ArrayList<>();
-        for (String permission : requiredPermissions) {
-            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-                missingPermissions.add(permission);
+        // Bluetooth permissions (Android 12+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+                    != PackageManager.PERMISSION_GRANTED) {
+                missing.add(Manifest.permission.BLUETOOTH_SCAN);
+            }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+                    != PackageManager.PERMISSION_GRANTED) {
+                missing.add(Manifest.permission.BLUETOOTH_CONNECT);
             }
         }
 
-        if (!missingPermissions.isEmpty()) {
-            ActivityCompat.requestPermissions(this, missingPermissions.toArray(new String[0]), 1001);
-        } else if (isTracking) {
+        // Location permissions (always needed for BT + Wi-Fi scanning)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            missing.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            missing.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+
+        // Notification permission (Android 13+) — safe to include in stage-1 batch
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                missing.add(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+
+        if (!missing.isEmpty()) {
+            ActivityCompat.requestPermissions(this, missing.toArray(new String[0]), REQ_CORE_PERMISSIONS);
+        } else {
+            // Core permissions already granted — proceed to background location, then start
+            requestBackgroundLocationIfNeeded();
+        }
+    }
+
+    /**
+     * Stage 2 — background location.
+     * Must be requested AFTER fine location is granted (separate dialog, separate request code).
+     */
+    private void requestBackgroundLocationIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                        REQ_BACKGROUND_LOCATION);
+                return;
+            }
+        }
+        // Background location granted (or not needed) — safe to start service
+        if (isTracking) {
             startScannerService();
         }
     }
@@ -161,24 +189,32 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 1001) {
-            boolean allGranted = true;
-            for (int result : grantResults) {
-                if (result != PackageManager.PERMISSION_GRANTED) {
-                    allGranted = false;
-                    break;
-                }
+
+        if (requestCode == REQ_CORE_PERMISSIONS) {
+            // Check that the critical permissions (fine location + BT on API 31+) were granted.
+            // POST_NOTIFICATIONS denial is non-fatal — scanning still works without it.
+            boolean fineLocationGranted = ContextCompat.checkSelfPermission(
+                    this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+
+            if (!fineLocationGranted) {
+                Toast.makeText(this,
+                        "Location permission is required for Bluetooth and Wi-Fi scanning.",
+                        Toast.LENGTH_LONG).show();
+                return;
             }
-            if (allGranted && isTracking) {
+            // Core permissions OK — request background location next
+            requestBackgroundLocationIfNeeded();
+
+        } else if (requestCode == REQ_BACKGROUND_LOCATION || requestCode == REQ_POST_NOTIFICATIONS) {
+            // Background location denial is non-fatal — foreground scanning still works.
+            // Either way, proceed to start the service if tracking was requested.
+            if (isTracking) {
                 startScannerService();
             }
         }
     }
 
     private void startScannerService() {
-        // Guard: don't double-start if the service is already running
-        if (isTracking) return;
-
         Intent serviceIntent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
         startForegroundService(serviceIntent);
         isTracking = true;
@@ -188,9 +224,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void stopScannerService() {
+        // Use stopService() — NOT startForegroundService() — to stop the service.
+        // Sending ACTION_STOP via startForegroundService re-creates the service if it
+        // was already killed by the OS, which is the opposite of what we want here.
         Intent serviceIntent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
-        serviceIntent.setAction(com.example.billboardanalytics.service.ScannerService.ACTION_STOP);
-        startForegroundService(serviceIntent);
+        stopService(serviceIntent);
         isTracking = false;
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
                 .putBoolean(KEY_IS_TRACKING, false).apply();
@@ -208,13 +246,15 @@ public class MainActivity extends AppCompatActivity {
                         .apply();
                 runOnUiThread(() -> {
                     Toast.makeText(this, "Previous data cleared. New tracking session started.", Toast.LENGTH_LONG).show();
-                    startScannerService();
+                    // Route through the permission flow — if permissions were revoked since
+                    // last launch, this will re-request them before starting the service.
+                    checkAndRequestPermissions();
                 });
             } catch (Exception e) {
                 Log.e("MainActivity", "Failed to clear database for new session", e);
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "Error starting new session: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+                runOnUiThread(() ->
+                    Toast.makeText(this, "Error starting new session: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                );
             }
         });
     }
@@ -359,7 +399,7 @@ public class MainActivity extends AppCompatActivity {
         }
         Intent intent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
         intent.setAction(com.example.billboardanalytics.service.ScannerService.ACTION_TRIGGER_SYNC);
-        startService(intent);
+        startForegroundService(intent);
         Toast.makeText(this, "Immediate Cloud Sync Triggered!", Toast.LENGTH_SHORT).show();
     }
 

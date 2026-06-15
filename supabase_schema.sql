@@ -6,29 +6,29 @@
 
 -- Devices table
 CREATE TABLE IF NOT EXISTS public.devices (
-    id              BIGINT PRIMARY KEY,
-    device_identifier TEXT UNIQUE,
-    source          TEXT,
-    first_seen      TIMESTAMPTZ,
-    last_seen       TIMESTAMPTZ
+    id              BIGSERIAL PRIMARY KEY,
+    device_identifier TEXT NOT NULL,
+    source          TEXT NOT NULL,
+    first_seen      TIMESTAMPTZ DEFAULT NOW(),
+    last_seen       TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Observations table
 CREATE TABLE IF NOT EXISTS public.observations (
-    id              BIGINT PRIMARY KEY,
-    device_id       BIGINT REFERENCES public.devices(id) ON DELETE CASCADE,
-    timestamp       TIMESTAMPTZ,
-    rssi            INTEGER,
-    source          TEXT
+    id              BIGSERIAL PRIMARY KEY,
+    device_id       BIGINT NOT NULL REFERENCES public.devices(id) ON DELETE CASCADE,
+    timestamp       TIMESTAMPTZ DEFAULT NOW(),
+    rssi            INTEGER NOT NULL,
+    source          TEXT NOT NULL
 );
 
 -- Sessions table (dwell-time windows per device)
 CREATE TABLE IF NOT EXISTS public.sessions (
-    id              BIGINT PRIMARY KEY,
-    device_id       BIGINT REFERENCES public.devices(id) ON DELETE CASCADE,
-    start_time      TIMESTAMPTZ,
-    end_time        TIMESTAMPTZ,
-    duration        BIGINT  -- milliseconds
+    id              BIGSERIAL PRIMARY KEY,
+    device_id       BIGINT NOT NULL REFERENCES public.devices(id) ON DELETE CASCADE,
+    start_time      TIMESTAMPTZ DEFAULT NOW(),
+    end_time        TIMESTAMPTZ DEFAULT NOW(),
+    duration        BIGINT NOT NULL DEFAULT 0
 );
 
 -- Indexes for faster dashboard queries

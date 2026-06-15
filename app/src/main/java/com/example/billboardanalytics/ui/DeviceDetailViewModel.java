@@ -89,7 +89,9 @@ public class DeviceDetailViewModel extends AndroidViewModel {
         try {
             Date date = dateFormat.parse(isoDate);
             if (date != null) {
-                SimpleDateFormat outFormat = new SimpleDateFormat("MMM dd, HH:mm:ss", Locale.US);
+                // Display in device local time so the user sees a meaningful clock value.
+                // Explicitly set timezone so the label is unambiguous regardless of locale.
+                SimpleDateFormat outFormat = new SimpleDateFormat("MMM dd, HH:mm:ss z", Locale.US);
                 return outFormat.format(date);
             }
         } catch (ParseException e) {
@@ -114,7 +116,7 @@ public class DeviceDetailViewModel extends AndroidViewModel {
     @Override
     protected void onCleared() {
         super.onCleared();
-        executor.shutdown();
+        executor.shutdownNow();
     }
 
     public static class DeviceDetailData {

@@ -8,6 +8,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.billboardanalytics.R;
@@ -29,10 +31,44 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
         this.clickListener = listener;
     }
 
-    @SuppressLint("NotifyDataSetChanged")
+    /**
+     * Updates the list using DiffUtil so only changed rows are redrawn.
+     * Replaces the old notifyDataSetChanged() which caused full-list flicker every 2 seconds.
+     */
     public void setDevices(List<NearbyDevice> newDevices) {
+        final List<NearbyDevice> oldDevices = this.devices;
+        DiffUtil.DiffResult result = DiffUtil.calculateDiff(new DiffUtil.Callback() {
+            @Override
+            public int getOldListSize() { return oldDevices.size(); }
+
+            @Override
+            public int getNewListSize() { return newDevices.size(); }
+
+            @Override
+            public boolean areItemsTheSame(int oldPos, int newPos) {
+                // Items represent the same device if their database IDs match
+                return oldDevices.get(oldPos).databaseId == newDevices.get(newPos).databaseId;
+            }
+
+            @Override
+            public boolean areContentsTheSame(int oldPos, int newPos) {
+                NearbyDevice o = oldDevices.get(oldPos);
+                NearbyDevice n = newDevices.get(newPos);
+                // Redraw only if visible fields changed
+                return o.rssi == n.rssi
+                        && o.status.equals(n.status)
+                        && o.lastSeenText.equals(n.lastSeenText)
+                        && (o.distanceMeters == n.distanceMeters);
+            }
+
+            @Nullable
+            @Override
+            public Object getChangePayload(int oldItemPosition, int newItemPosition) {
+                return Boolean.TRUE; // non-null payload suppresses the default fade animation
+            }
+        });
         this.devices = newDevices;
-        notifyDataSetChanged();
+        result.dispatchUpdatesTo(this);
     }
 
     @NonNull

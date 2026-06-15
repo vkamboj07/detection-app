@@ -37,7 +37,7 @@
         android:icon="@android:drawable/sym_def_app_icon"
         android:label="Footfall Tracker"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.NoActionBar">
+        android:theme="@style/Theme.FootfallTracker">
         
         <activity android:name=".ui.MainActivity" android:exported="true">
             <intent-filter>

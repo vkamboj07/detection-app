@@ -8,7 +8,7 @@
     android:background="#1E1E1E"
     android:padding="16dp"
     android:fitsSystemWindows="true"
-    tools:ignore="HardcodedText,VisualLintSystemWindow">
+    tools:ignore="HardcodedText">
 
     <!-- Header -->
     <LinearLayout

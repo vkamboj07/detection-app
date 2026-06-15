@@ -13,6 +13,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -195,14 +196,14 @@ public class SupabaseSyncManager {
     // -------------------------------------------------------------------------
 
     private void syncSessions() throws IOException, JSONException {
-        long lastSyncedId = prefs.getLong(KEY_LAST_SYNCED_SESSION_ID, 0);
-        List<SessionEntity> pending = dao.getSessionsAfter(lastSyncedId, BATCH_SIZE);
-        if (pending.isEmpty()) return;
+        // Upload ALL sessions (not just new ones) so that duration updates from
+        // extended sessions are pushed to Supabase. Sessions are relatively few
+        // (one per device visit), so this is efficient.
+        List<SessionEntity> allSessions = dao.getAllSessions();
+        if (allSessions.isEmpty()) return;
 
         JSONArray body = new JSONArray();
-        long maxId = lastSyncedId;
-
-        for (SessionEntity s : pending) {
+        for (SessionEntity s : allSessions) {
             JSONObject obj = new JSONObject();
             obj.put("id",         s.id);
             obj.put("device_id",  s.deviceId);
@@ -210,13 +211,10 @@ public class SupabaseSyncManager {
             obj.put("end_time",   s.endTime   != null ? s.endTime   : JSONObject.NULL);
             obj.put("duration",   s.duration);
             body.put(obj);
-            if (s.id > maxId) maxId = s.id;
         }
 
-        // Re-upsert sessions so updated duration values are pushed too.
         post(supabaseUrl + "/rest/v1/sessions?on_conflict=id", body.toString());
-        prefs.edit().putLong(KEY_LAST_SYNCED_SESSION_ID, maxId).apply();
-        Log.d(TAG, "Synced " + pending.size() + " session(s) (last id=" + maxId + ").");
+        Log.d(TAG, "Synced " + allSessions.size() + " session(s) with current durations.");
     }
 
     // -------------------------------------------------------------------------
@@ -245,7 +243,15 @@ public class SupabaseSyncManager {
             if (code < 200 || code >= 300) {
                 String errorBody = "";
                 try (InputStream es = conn.getErrorStream()) {
-                    if (es != null) errorBody = new String(es.readAllBytes(), StandardCharsets.UTF_8);
+                    if (es != null) {
+                        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                        byte[] chunk = new byte[4096];
+                        int bytesRead;
+                        while ((bytesRead = es.read(chunk, 0, chunk.length)) != -1) {
+                            buffer.write(chunk, 0, bytesRead);
+                        }
+                        errorBody = buffer.toString("UTF-8");
+                    }
                 }
                 throw new IOException("Supabase returned HTTP " + code + ": " + errorBody);
             }

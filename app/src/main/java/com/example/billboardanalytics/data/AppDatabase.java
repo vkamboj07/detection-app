@@ -39,8 +39,9 @@ public abstract class AppDatabase extends RoomDatabase {
                                     AppDatabase.class,
                                     "billboard_analytics_db")
                             .addMigrations(ALL_MIGRATIONS)
-                            // fallbackToDestructiveMigration removed — add explicit Migration
-                            // objects above instead of silently wiping data on schema changes.
+                            // Safety net: if version is bumped without adding a migration,
+                            // fall back to destructive recovery instead of crashing.
+                            .fallbackToDestructiveMigration()
                             .build();
                 }
             }

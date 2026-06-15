@@ -58,20 +58,18 @@ public class BluetoothScanner {
                 int rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE);
 
                 if (device != null) {
-                    String source;
                     int type = device.getType();
-                    // TYPE_DUAL (3) or TYPE_BREDR (1) = classic BT, TYPE_LE (2) = BLE
+                    // Skip BLE devices here — they are already captured by the BLE scan path (leScanCallback).
+                    // Reporting them again via ACTION_FOUND would double-count every BLE device.
                     if (type == BluetoothDevice.DEVICE_TYPE_LE) {
-                        source = "BLE";
-                    } else {
-                        source = "BT_CLASSIC";
+                        return;
                     }
 
-                    Observation obs = new Observation(source, device.getAddress(), rssi, getCurrentTimestamp());
+                    Observation obs = new Observation("BT_CLASSIC", device.getAddress(), rssi, getCurrentTimestamp());
                     if (callback != null) {
                         callback.onObservationDetected(obs);
                     }
-                    Log.d(TAG, "Classic BT detected: " + device.getAddress() + " RSSI=" + rssi + " type=" + source);
+                    Log.d(TAG, "Classic BT detected: " + device.getAddress() + " RSSI=" + rssi);
                 }
             }
         }

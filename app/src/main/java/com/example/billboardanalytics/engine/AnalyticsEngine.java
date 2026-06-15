@@ -143,6 +143,16 @@ public class AnalyticsEngine {
         }
 
         // 6. Calculate Last 5 Minutes Trend
+        // Only consider sessions that were active at some point in the last 5 minutes
+        // (endTime >= fiveMinsAgo). Using all todaySessions would count sessions that
+        // ended hours ago as "currently active", inflating the live chart.
+        List<SessionEntity> recentSessions = new java.util.ArrayList<>();
+        for (SessionEntity s : todaySessions) {
+            if (parseTimestamp(s.endTime) >= fiveMinsAgo) {
+                recentSessions.add(s);
+            }
+        }
+
         Map<Integer, Integer> last5MinsTrend = new HashMap<>();
         for (int i = 0; i < 5; i++) last5MinsTrend.put(i, 0);
 
@@ -154,7 +164,7 @@ public class AnalyticsEngine {
             long bucketEnd = bucketStart + minuteMs;
             
             Set<Long> uniqueInBucket = new HashSet<>();
-            for (SessionEntity session : todaySessions) {
+            for (SessionEntity session : recentSessions) {
                 long sStart = parseTimestamp(session.startTime);
                 long sEnd = parseTimestamp(session.endTime);
                 
@@ -171,7 +181,8 @@ public class AnalyticsEngine {
         metrics.currentNearbyDevices = dao.getNearbyDevicesCount(fiveMinsAgoStr);
         metrics.returningVisitors = returningVisitorsToday.size();
         metrics.averageDwellTimeMs = todaySessions.isEmpty() ? 0 : totalDwellTime / todaySessions.size();
-        metrics.peakHour = todaySessions.isEmpty() ? "N/A" : String.format(Locale.US, "%02d:00 - %02d:00", peakHour, (peakHour + 1) % 24);
+        metrics.peakHour = todaySessions.isEmpty() ? "N/A" : String.format(Locale.US, "%02d:00 – %02d:00",
+                peakHour, (peakHour + 1) % 24);
         metrics.peakActivityMinsAgo = peakActivityText;
         metrics.hourlyTrafficTrend = hourlyTrend;
         metrics.last5MinutesTrend = last5MinsTrend;

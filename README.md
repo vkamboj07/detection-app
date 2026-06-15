@@ -225,10 +225,11 @@ Indexes: `device_identifier` (unique), `device_id` on observations, `device_id` 
 
 | Table | Key Fields | Indexes |
 |-------|-----------|---------|
-| `devices` | `id BIGSERIAL PK`, `device_identifier TEXT`, `source TEXT`, `first_seen TIMESTAMPTZ`, `last_seen TIMESTAMPTZ` | `idx_devices_identifier` on `device_identifier` |
-| `observations` | `id BIGSERIAL PK`, `device_id BIGINT FK→devices`, `timestamp TIMESTAMPTZ`, `rssi INTEGER`, `source TEXT` | `idx_observations_timestamp DESC` |
+| `devices` | `id BIGSERIAL PK`, `device_identifier TEXT NOT NULL`, `source TEXT NOT NULL`, `first_seen TIMESTAMPTZ DEFAULT NOW()`, `last_seen TIMESTAMPTZ DEFAULT NOW()` | `idx_devices_identifier`, `idx_devices_last_seen DESC` |
+| `observations` | `id BIGSERIAL PK`, `device_id BIGINT FK→devices NOT NULL`, `timestamp TIMESTAMPTZ DEFAULT NOW()`, `rssi INTEGER NOT NULL`, `source TEXT NOT NULL` | `idx_observations_timestamp DESC`, `idx_observations_device_id` |
+| `sessions` | `id BIGSERIAL PK`, `device_id BIGINT FK→devices NOT NULL`, `start_time TIMESTAMPTZ DEFAULT NOW()`, `end_time TIMESTAMPTZ DEFAULT NOW()`, `duration BIGINT NOT NULL DEFAULT 0` | `idx_sessions_device_id`, `idx_sessions_start_time DESC` |
 
-> Sessions table exists only on-device. The cloud schema stores only devices and observations, which are sufficient for the web dashboard's analytics.
+> The cloud schema mirrors the on-device schema with all three tables (`devices`, `observations`, `sessions`) for accurate analytics syncing.
 
 ---
 
@@ -375,8 +376,20 @@ CREATE TABLE observations (
     source TEXT NOT NULL
 );
 
+CREATE TABLE sessions (
+    id BIGSERIAL PRIMARY KEY,
+    device_id BIGINT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    start_time TIMESTAMPTZ DEFAULT NOW(),
+    end_time TIMESTAMPTZ DEFAULT NOW(),
+    duration BIGINT NOT NULL DEFAULT 0
+);
+
 CREATE INDEX idx_observations_timestamp ON observations(timestamp DESC);
+CREATE INDEX idx_observations_device_id ON observations(device_id);
+CREATE INDEX idx_sessions_device_id ON sessions(device_id);
+CREATE INDEX idx_sessions_start_time ON sessions(start_time DESC);
 CREATE INDEX idx_devices_identifier ON devices(device_identifier);
+CREATE INDEX idx_devices_last_seen ON devices(last_seen DESC);
 ```
 
 3. Enable Row Level Security and add insert policies:
@@ -384,17 +397,23 @@ CREATE INDEX idx_devices_identifier ON devices(device_identifier);
 ```sql
 ALTER TABLE devices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE observations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow anon all on devices"
-  ON devices FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "anon_select_devices"      ON devices      FOR SELECT USING (true);
+CREATE POLICY "anon_insert_devices"      ON devices      FOR INSERT WITH CHECK (true);
+CREATE POLICY "anon_update_devices"      ON devices      FOR UPDATE USING (true);
 
-CREATE POLICY "Allow anon all on observations"
-  ON observations FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "anon_select_observations" ON observations FOR SELECT USING (true);
+CREATE POLICY "anon_insert_observations" ON observations FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "anon_select_sessions"     ON sessions     FOR SELECT USING (true);
+CREATE POLICY "anon_insert_sessions"     ON sessions     FOR INSERT WITH CHECK (true);
+CREATE POLICY "anon_update_sessions"     ON sessions     FOR UPDATE USING (true);
 ```
 
-4. Enable Realtime for both tables:
+4. Enable Realtime for all three tables:
    - Go to **Database → Replication**
-   - Toggle on `devices` and `observations`
+   - Toggle on `devices`, `observations`, and `sessions`
 
 5. Copy your **Project URL** and **anon public key** from **Project Settings → API**
 

@@ -92,7 +92,10 @@ public class WiFiScanner {
             readCachedResults();
             // Schedule the next poll back on the Handler (main thread) so the timing
             // is driven by the Handler clock, not the executor queue.
-            handler.postDelayed(this::pollResults, POLL_INTERVAL_MS);
+            // Guard again here: stopScanning() may have been called while readCachedResults() ran.
+            if (isScanning) {
+                handler.postDelayed(this::pollResults, POLL_INTERVAL_MS);
+            }
         });
     }
 

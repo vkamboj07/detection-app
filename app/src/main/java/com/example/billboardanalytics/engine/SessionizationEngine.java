@@ -17,15 +17,26 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class SessionizationEngine {
     private static final String TAG = "SessionizationEngine";
     private static final long SESSION_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+    // Maximum number of pending detections queued before new ones are dropped.
+    // BLE can fire 10-20 callbacks/second; a cap of 200 gives ~10-20s of buffer
+    // without letting the queue grow without bound during extended scanning bursts.
+    private static final int MAX_QUEUE_DEPTH = 200;
 
     private final AnalyticsDao dao;
     private final SupabaseSyncManager syncManager;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    // Bounded queue with CallerRunsPolicy would block the scanner thread — use
+    // DiscardPolicy instead so scanner callbacks are never stalled.
+    private final ExecutorService executor = new ThreadPoolExecutor(
+            1, 1, 0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<>(MAX_QUEUE_DEPTH),
+            new ThreadPoolExecutor.DiscardPolicy());
 
     // SimpleDateFormat is NOT thread-safe — use ThreadLocal to give each thread its own instance
     private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {

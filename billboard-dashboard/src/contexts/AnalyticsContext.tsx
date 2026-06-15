@@ -32,7 +32,10 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
   const metrics = useMemo(() => {
     const now = new Date();
     const fiveMinsAgo = new Date(now.getTime() - 5 * 60 * 1000);
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Use UTC midnight so comparisons match the UTC timestamps stored by the Android app.
+    // Using local midnight would shift "today" by the browser's UTC offset, misclassifying
+    // devices seen near midnight.
+    const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
     // Active devices: seen in last 5 minutes
     const activeDeviceIds = new Set(
@@ -73,7 +76,9 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     const hourCounts: Record<number, number> = {};
     for (let i = 0; i < 24; i++) hourCounts[i] = 0;
     todaySessions.forEach(s => {
-      const h = new Date(s.start_time).getHours();
+      // Use UTC hours to match the UTC timestamps stored by the Android app.
+      // getHours() returns local browser time, which shifts the peak hour by the UTC offset.
+      const h = new Date(s.start_time).getUTCHours();
       hourCounts[h] = (hourCounts[h] ?? 0) + 1;
     });
     let peakHourNum = 0;
@@ -89,9 +94,14 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
         ? `${String(peakHourNum).padStart(2, '0')}:00 – ${String((peakHourNum + 1) % 24).padStart(2, '0')}:00`
         : 'N/A';
 
+    // Total visitors today: unique device IDs in sessions that started today
+    // (matches Android app's totalVisitorsToday in AnalyticsEngine.java).
+    const todaySessionDeviceIds = new Set(todaySessions.map(s => s.device_id));
+    const totalDevices = todaySessionDeviceIds.size;
+
     return {
       activeDevices,
-      totalDevices: devices.length,
+      totalDevices,
       newDevicesToday,
       totalObservations: observations.length,
       averageDwellTimeMs,

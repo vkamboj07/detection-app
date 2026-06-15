@@ -2,6 +2,15 @@ plugins {
     id 'com.android.application'
 }
 
+// Read sensitive credentials from local.properties (not committed to source control).
+// If the file or keys are missing, fall back to empty strings so the build doesn't break
+// on CI or fresh checkouts — the sync manager will skip uploading when credentials are empty.
+def localProps = new Properties()
+def localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) {
+    localPropsFile.withInputStream { localProps.load(it) }
+}
+
 android {
     namespace 'com.example.billboardanalytics'
     compileSdk 36
@@ -13,8 +22,10 @@ android {
         versionCode 1
         versionName "1.0"
 
-        buildConfigField("String", "SUPABASE_URL", "\"https://zzzazvoeweecddidqysy.supabase.co\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"sb_publishable_rpoU-XbKNvx5IE4iobJWzg_60wc823q\"")
+        def supabaseUrl     = localProps.getProperty('SUPABASE_URL',      '')
+        def supabaseAnonKey = localProps.getProperty('SUPABASE_ANON_KEY', '')
+        buildConfigField("String", "SUPABASE_URL",      "\"${supabaseUrl}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${supabaseAnonKey}\"")
     }
 
     buildFeatures {

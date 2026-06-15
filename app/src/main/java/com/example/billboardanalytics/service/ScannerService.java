@@ -81,12 +81,6 @@ public class ScannerService extends Service {
         Log.d(TAG, "ScannerService onStartCommand");
 
         if (intent != null) {
-            if (ACTION_STOP.equals(intent.getAction())) {
-                Log.d(TAG, "Stop action triggered via Intent");
-                stopForeground(true);
-                stopSelf();
-                return START_NOT_STICKY;
-            }
             if (ACTION_TRIGGER_SYNC.equals(intent.getAction())) {
                 Log.d(TAG, "Sync action triggered via Intent");
                 if (syncManager != null) {

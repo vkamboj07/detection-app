@@ -2,6 +2,7 @@ package com.example.billboardanalytics.service;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -19,7 +20,19 @@ public class BootStartWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        Log.d(TAG, "Starting ScannerService from WorkManager...");
+        // Only restart the service if the user had tracking active before the reboot.
+        // Without this check the scanner would auto-start on every boot even if the
+        // user had explicitly stopped it.
+        SharedPreferences prefs = getApplicationContext()
+                .getSharedPreferences("tracker_prefs", Context.MODE_PRIVATE);
+        boolean wasTracking = prefs.getBoolean("is_tracking", false);
+
+        if (!wasTracking) {
+            Log.d(TAG, "Tracking was not active before reboot — skipping service start.");
+            return Result.success();
+        }
+
+        Log.d(TAG, "Tracking was active before reboot — restarting ScannerService.");
         try {
             Intent serviceIntent = new Intent(getApplicationContext(), ScannerService.class);
             getApplicationContext().startForegroundService(serviceIntent);

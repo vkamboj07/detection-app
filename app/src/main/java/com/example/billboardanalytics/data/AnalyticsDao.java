@@ -57,6 +57,9 @@ public interface AnalyticsDao {
      */
     @Query("SELECT * FROM sessions WHERE id > :afterId ORDER BY id ASC LIMIT :limit")
     List<SessionEntity> getSessionsAfter(long afterId, int limit);
+
+    @Query("SELECT * FROM sessions ORDER BY start_time ASC")
+    List<SessionEntity> getAllSessions();
     
     @Query("SELECT COUNT(*) FROM observations WHERE device_id = :deviceId AND timestamp >= :startTime AND timestamp <= :endTime")
     int getObservationCountForSession(long deviceId, String startTime, String endTime);
@@ -77,10 +80,11 @@ public interface AnalyticsDao {
      * of N per-device queries, eliminating the N+1 problem in NearbyDevicesViewModel.
      */
     @Query("SELECT o.* FROM observations o " +
-           "INNER JOIN (SELECT device_id, MAX(timestamp) AS max_ts FROM observations GROUP BY device_id) latest " +
-           "ON o.device_id = latest.device_id AND o.timestamp = latest.max_ts " +
-           "INNER JOIN devices d ON o.device_id = d.id " +
-           "WHERE d.last_seen >= :sinceTimestamp")
+           "WHERE o.id IN (" +
+           "SELECT MAX(o2.id) FROM observations o2 " +
+           "INNER JOIN devices d ON o2.device_id = d.id " +
+           "WHERE d.last_seen >= :sinceTimestamp " +
+           "GROUP BY o2.device_id)")
     List<ObservationEntity> getLatestObservationPerDeviceSince(String sinceTimestamp);
 
 }

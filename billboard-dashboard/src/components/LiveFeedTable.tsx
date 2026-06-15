@@ -48,7 +48,7 @@ export function LiveFeedTable() {
                 return (
                   <tr 
                     key={obs.id} 
-                    className="border-b border-white/5 hover:bg-white/5 transition-colors animate-in fade-in slide-in-from-top-2 duration-300"
+                    className="border-b border-white/5 hover:bg-white/5 transition-colors duration-300"
                   >
                     <td className="px-6 py-3 whitespace-nowrap text-textSecondary">
                       {formatTimeAgo(obs.timestamp)}
@@ -76,7 +76,7 @@ export function LiveFeedTable() {
                         <div className="w-16 h-2 bg-white/10 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-success"
-                            style={{ width: `${Math.max(0, Math.min(100, 100 - Math.abs(obs.rssi + 30)))}%` }}
+                            style={{ width: `${Math.max(0, Math.min(100, ((obs.rssi + 100) / 70) * 100))}%` }}
                           />
                         </div>
                         <span className="text-textSecondary">{obs.rssi} dBm</span>
