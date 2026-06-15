@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Footfall Tracker</string>
+
+    <!--
+        Supabase credentials for syncing local Room data to the cloud dashboard.
+        Replace these placeholder values with your actual project URL and anon key.
+        You can find them at: https://supabase.com/dashboard → Project Settings → API
+    -->
+    <string name="supabase_url" translatable="false">https://YOUR_PROJECT_ID.supabase.co</string>
+    <string name="supabase_anon_key" translatable="false">YOUR_SUPABASE_ANON_KEY</string>
 </resources>
