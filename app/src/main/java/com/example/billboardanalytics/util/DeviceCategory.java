@@ -3,15 +3,14 @@ package com.example.billboardanalytics.util;
 /**
  * Single source of truth for mapping a device source + identifier to a
  * human-readable category.
- * Wi-Fi BSSIDs always come from access-points/routers so they are labelled "Router/AP".
+ * Wi-Fi BSSIDs always come from access-points/routers so they are labeled "Router/AP".
  * For BLE / BT Classic devices the first three octets of the MAC address form the
- * OUI (Organisationally Unique Identifier).  We check against a small curated list
- * of well-known manufacturer OUI prefixes to produce meaningful labels.  Devices
- * whose OUI isn't in the list fall back to "Unknown".
- *
+ * OUI (Organizationally Unique Identifier). We check against a small curated list
+ * of well-known manufacturer OUI prefixes to produce meaningful labels. Devices
+ * whose OUI is not in the list fall back to "Unknown".
  * Random/private MAC addresses (bit 1 of the first octet is set, e.g. xx:xx:xx where
- * the second hex digit is 2, 6, A, or E) are labelled "Mobile Device" because they
- * are almost always phones or tablets using MAC randomisation.
+ * the second hex digit is 2, 6, A, or E) are labeled "Mobile Device" because they
+ * are almost always phones or tablets using MAC randomization.
  */
 public final class DeviceCategory {
 
@@ -32,20 +31,20 @@ public final class DeviceCategory {
             return "Unknown";
         }
 
-        // Check for randomised/private MAC address.
+        // Check for randomized/private MAC address.
         // The locally-administered bit is the second-least-significant bit of the
-        // first octet (bit 1).  If set the second nibble is 2, 6, A, or E.
+        // first octet (bit 1). If set the second nibble is 2, 6, A, or E.
         try {
             String firstOctetHex = deviceIdentifier.substring(0, 2).toUpperCase();
             int firstOctet = Integer.parseInt(firstOctetHex, 16);
             if ((firstOctet & 0x02) != 0) {
-                return "Mobile Device"; // randomised MAC — almost certainly a phone/tablet
+                return "Mobile Device"; // randomized MAC — almost certainly a phone/tablet
             }
         } catch (NumberFormatException ignored) {
             // fall through to OUI lookup
         }
 
-        // Normalise: upper-case, strip separators, take first 6 hex chars (3 octets = OUI)
+        // Normalize: upper-case, strip separators, take first 6 hex chars (3 octets = OUI)
         String normalised = deviceIdentifier.toUpperCase().replace(":", "").replace("-", "");
         if (normalised.length() < 6) return "Unknown";
         String oui = normalised.substring(0, 6);
@@ -56,6 +55,7 @@ public final class DeviceCategory {
     /**
      * Returns a category based on a 6-character hex OUI string (no separators, upper-case).
      * The list is intentionally broad — add more OUIs as needed.
+     * Note: OUI hex strings and brand names (Jabra, etc.) may trigger spell-check warnings; they are intentional.
      */
     private static String lookupOui(String oui) {
         switch (oui) {

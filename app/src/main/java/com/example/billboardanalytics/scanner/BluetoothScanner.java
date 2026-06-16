@@ -51,6 +51,7 @@ public class BluetoothScanner {
     }
 
     private final BroadcastReceiver classicBtReceiver = new BroadcastReceiver() {
+        @SuppressLint("MissingPermission")
         @Override
         public void onReceive(Context ctx, Intent intent) {
             if (BluetoothDevice.ACTION_FOUND.equals(intent.getAction())) {
@@ -147,7 +148,12 @@ public class BluetoothScanner {
     }
 
     private String getCurrentTimestamp() {
-        return DATE_FORMAT.get().format(new Date());
+        SimpleDateFormat sdf = DATE_FORMAT.get();
+        if (sdf == null) {
+            sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        }
+        return sdf.format(new Date());
     }
 
     private final ScanCallback leScanCallback = new ScanCallback() {
@@ -172,7 +178,7 @@ public class BluetoothScanner {
                         int key = record.getManufacturerSpecificData().keyAt(0);
                         byte[] mfBytes = record.getManufacturerSpecificData().get(key);
                         if (mfBytes != null) {
-                            obs.setManufacturerData(String.format("%04X", key) + bytesToHex(mfBytes));
+                            obs.setManufacturerData(String.format(Locale.US, "%04X", key) + bytesToHex(mfBytes));
                         }
                     }
                 }
@@ -202,7 +208,7 @@ public class BluetoothScanner {
     private String bytesToHex(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
-            sb.append(String.format("%02X", b));
+            sb.append(String.format(Locale.US, "%02X", b));
         }
         return sb.toString();
     }

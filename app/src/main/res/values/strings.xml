@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Footfall Tracker</string>
+
+    <!-- DebugLogActivity -->
+    <string name="debug_loading">Loading…</string>
+    <string name="debug_clearing">Clearing database…</string>
+    <string name="debug_cleared">Database cleared.</string>
+    <string name="debug_all_data_cleared">All data cleared.</string>
+
+    <!-- MainActivity -->
+    <string name="btn_start_tracker">Start Tracker</string>
+    <string name="btn_stop_tracker">Stop Tracker</string>
 </resources>

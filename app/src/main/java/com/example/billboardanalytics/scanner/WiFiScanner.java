@@ -17,7 +17,6 @@ import java.util.TimeZone;
 
 /**
  * Scans for nearby Wi-Fi access points and reports each one as an Observation.
- *
  * WHY NO startScan():
  * WifiManager.startScan() is severely throttled on Android 9+ and returns false
  * nearly 100% of the time when called from a background service on API 30+
@@ -33,7 +32,6 @@ public class WiFiScanner {
     // The OS refreshes the cache on its own schedule (typically every ~20-30s).
     private static final long POLL_INTERVAL_MS = 15_000;
 
-    private final Context context;
     private final WifiManager wifiManager;
     private final ObservationCallback callback;
 
@@ -54,11 +52,9 @@ public class WiFiScanner {
     }
 
     public WiFiScanner(Context context, ObservationCallback callback) {
-        this.context = context;
         this.callback = callback;
         this.wifiManager = (WifiManager) context.getApplicationContext()
                 .getSystemService(Context.WIFI_SERVICE);
-
     }
 
     public void startScanning() {
@@ -139,6 +135,11 @@ public class WiFiScanner {
     }
 
     private String getCurrentTimestamp() {
-        return DATE_FORMAT.get().format(new Date());
+        SimpleDateFormat sdf = DATE_FORMAT.get();
+        if (sdf == null) {
+            sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        }
+        return sdf.format(new Date());
     }
 }

@@ -30,11 +30,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * Syncs locally-stored Room data (devices + observations + sessions) to the
  * Supabase REST API so the web dashboard receives live data from the Android scanner.
- *
- * Sync is debounced — multiple rapid calls to {@link #syncAsync()} within
+ * Sync uses a debounce strategy — multiple rapid calls to {@link #syncAsync()} within
  * {@code DEBOUNCE_SECONDS} are collapsed into a single upload, so BLE scans that fire
  * every few seconds don't flood the network.
- *
  * Sync is best-effort: failures are logged but never crash the app. The high-water
  * marks are only advanced after a confirmed successful HTTP response so no rows are lost.
  */
@@ -43,7 +41,6 @@ public class SupabaseSyncManager {
     private static final String TAG = "SupabaseSyncManager";
     private static final String PREFS_NAME = "sync_prefs";
     private static final String KEY_LAST_SYNCED_OBS_ID     = "last_synced_obs_id";
-    private static final String KEY_LAST_SYNCED_SESSION_ID = "last_synced_session_id";
     private static final int    BATCH_SIZE       = 50;
     private static final long   DEBOUNCE_SECONDS = 10;  // wait this long after last detection before uploading
     private static final long   MAX_WAIT_SECONDS = 30;  // but never delay more than this — guarantees upload
@@ -70,8 +67,7 @@ public class SupabaseSyncManager {
 
     /**
      * Schedules an automatic background sync triggered by a new scan detection.
-     *
-     * Debounced: collapses rapid calls (every few seconds) into one upload.
+     * Uses a debounce strategy: collapses rapid calls (every few seconds) into one upload.
      * Ceiling: guarantees a sync fires within MAX_WAIT_SECONDS of the first call
      * in a burst, so continuous scanning never starves the upload pipeline.
      */
@@ -241,22 +237,26 @@ public class SupabaseSyncManager {
 
             int code = conn.getResponseCode();
             if (code < 200 || code >= 300) {
-                String errorBody = "";
-                try (InputStream es = conn.getErrorStream()) {
-                    if (es != null) {
-                        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                        byte[] chunk = new byte[4096];
-                        int bytesRead;
-                        while ((bytesRead = es.read(chunk, 0, chunk.length)) != -1) {
-                            buffer.write(chunk, 0, bytesRead);
-                        }
-                        errorBody = buffer.toString("UTF-8");
-                    }
-                }
+                String errorBody = readErrorBody(conn);
                 throw new IOException("Supabase returned HTTP " + code + ": " + errorBody);
             }
         } finally {
             conn.disconnect();
+        }
+    }
+
+    private String readErrorBody(HttpURLConnection conn) {
+        try (InputStream es = conn.getErrorStream()) {
+            if (es == null) return "";
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            byte[] chunk = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = es.read(chunk, 0, chunk.length)) != -1) {
+                buffer.write(chunk, 0, bytesRead);
+            }
+            return buffer.toString("UTF-8");
+        } catch (IOException e) {
+            return "(could not read error body: " + e.getMessage() + ")";
         }
     }
 }

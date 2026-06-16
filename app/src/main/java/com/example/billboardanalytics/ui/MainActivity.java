@@ -1,7 +1,6 @@
 package com.example.billboardanalytics.ui;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.widget.Button;
@@ -171,14 +170,12 @@ public class MainActivity extends AppCompatActivity {
      * Must be requested AFTER fine location is granted (separate dialog, separate request code).
      */
     private void requestBackgroundLocationIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
-                        REQ_BACKGROUND_LOCATION);
-                return;
-            }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                    REQ_BACKGROUND_LOCATION);
+            return;
         }
         // Background location granted (or not needed) — safe to start service
         if (isTracking) {
@@ -261,12 +258,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateTrackerButton() {
         if (isTracking) {
-            btnStartTracker.setText("Stop Tracker");
+            btnStartTracker.setText(R.string.btn_stop_tracker);
             btnStartTracker.setBackgroundTintList(
                     android.content.res.ColorStateList.valueOf(Color.parseColor("#CF6679")));
             btnStartTracker.setTextColor(Color.WHITE);
         } else {
-            btnStartTracker.setText("Start Tracker");
+            btnStartTracker.setText(R.string.btn_start_tracker);
             btnStartTracker.setBackgroundTintList(
                     android.content.res.ColorStateList.valueOf(Color.parseColor("#B3C4C1")));
             btnStartTracker.setTextColor(Color.parseColor("#1E1E1E"));

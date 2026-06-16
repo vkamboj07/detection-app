@@ -8,7 +8,6 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -61,7 +60,7 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
                         && (o.distanceMeters == n.distanceMeters);
             }
 
-            @Nullable
+            @NonNull
             @Override
             public Object getChangePayload(int oldItemPosition, int newItemPosition) {
                 return Boolean.TRUE; // non-null payload suppresses the default fade animation

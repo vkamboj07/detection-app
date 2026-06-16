@@ -48,7 +48,7 @@ public class DebugLogActivity extends AppCompatActivity {
     }
 
     private void loadSessionHistoryJson() {
-        tvJsonOutput.setText("Loading...");
+        tvJsonOutput.setText(R.string.debug_loading);
         debugExecutor.execute(() -> {
             AppDatabase db = AppDatabase.getDatabase(getApplicationContext());
             List<DeviceEntity> devices = db.analyticsDao().getAllDevices();
@@ -82,12 +82,12 @@ public class DebugLogActivity extends AppCompatActivity {
     }
 
     private void clearDatabase() {
-        tvJsonOutput.setText("Clearing database...");
+        tvJsonOutput.setText(R.string.debug_clearing);
         debugExecutor.execute(() -> {
             AppDatabase.getDatabase(getApplicationContext()).clearAllTables();
             runOnUiThread(() -> {
-                tvJsonOutput.setText("Database cleared.");
-                Toast.makeText(this, "All data cleared.", Toast.LENGTH_SHORT).show();
+                tvJsonOutput.setText(R.string.debug_cleared);
+                Toast.makeText(this, R.string.debug_all_data_cleared, Toast.LENGTH_SHORT).show();
             });
         });
     }

@@ -14,7 +14,6 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import com.example.billboardanalytics.BuildConfig;
-import com.example.billboardanalytics.R;
 import com.example.billboardanalytics.data.AppDatabase;
 import com.example.billboardanalytics.engine.SessionizationEngine;
 import com.example.billboardanalytics.scanner.BluetoothScanner;
