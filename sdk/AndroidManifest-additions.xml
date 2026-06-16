@@ -1,0 +1,13 @@
+<!--
+    Analytics SDK — AndroidManifest additions
+    Add this permission to your app's AndroidManifest.xml.
+    INTERNET is a normal (non-dangerous) permission and is granted automatically
+    by the OS — no runtime request is needed.
+-->
+
+<uses-permission android:name="android.permission.INTERNET" />
+
+<!--
+    No other permissions are required by the SDK.
+    Settings.Secure.ANDROID_ID is readable without any permission.
+-->

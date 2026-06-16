@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.FootfallTracker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.FootfallTracker" parent="Theme.MaterialComponents.NoActionBar">
         <item name="colorPrimary">#B3C4C1</item>
         <item name="colorPrimaryVariant">#8DA8A5</item>
         <item name="colorOnPrimary">#1E1E1E</item>

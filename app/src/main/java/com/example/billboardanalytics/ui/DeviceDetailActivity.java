@@ -31,7 +31,14 @@ public class DeviceDetailActivity extends AppCompatActivity {
     private TextView tvDeviceIdHeader, tvDeviceCategory;
     private TextView tvFirstSeen, tvLastSeen, tvDetections, tvAvgRssi, tvSessions, tvTotalDwell;
     private LineChart rssiChart;
-    private SimpleDateFormat dateFormat;
+
+    // SimpleDateFormat is NOT thread-safe — use ThreadLocal even though this class
+    // only calls parseTimestamp() on the main thread, to be consistent and safe.
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return sdf;
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,11 +57,7 @@ public class DeviceDetailActivity extends AppCompatActivity {
         tvTotalDwell = findViewById(R.id.tvTotalDwell);
         rssiChart = findViewById(R.id.rssiChart);
 
-        dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-
         setupChart();
-
         long deviceId = getIntent().getLongExtra(EXTRA_DEVICE_ID, -1);
 
         if (deviceId == -1) {
@@ -145,7 +148,7 @@ public class DeviceDetailActivity extends AppCompatActivity {
     private long parseTimestamp(String timestamp) {
         if (timestamp == null) return 0;
         try {
-            Date date = dateFormat.parse(timestamp);
+            Date date = DATE_FORMAT.get().parse(timestamp);
             return date != null ? date.getTime() : 0;
         } catch (ParseException e) {
             return 0;

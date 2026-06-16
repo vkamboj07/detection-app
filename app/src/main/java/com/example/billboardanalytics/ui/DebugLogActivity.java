@@ -41,7 +41,14 @@ public class DebugLogActivity extends AppCompatActivity {
         Button btnClearDb = findViewById(R.id.btnClearDb);
 
         btnLoadJson.setOnClickListener(v -> loadSessionHistoryJson());
-        btnClearDb.setOnClickListener(v -> clearDatabase());
+        btnClearDb.setOnClickListener(v -> {
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Clear Database")
+                    .setMessage("This will permanently delete all recorded data. Are you sure?")
+                    .setPositiveButton("Clear", (dialog, which) -> clearDatabase())
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
 
         // Load on open
         loadSessionHistoryJson();

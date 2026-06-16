@@ -61,12 +61,7 @@ public class NearbyDevicesViewModel extends AndroidViewModel {
     private void updateDevicesList() {
         long now = System.currentTimeMillis();
         long thresholdMs = now - 300_000; // 5 minutes
-        SimpleDateFormat sdf = DATE_FORMAT.get();
-        if (sdf == null) {
-            sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        }
-        String thresholdStr = sdf.format(new Date(thresholdMs));
+        String thresholdStr = DATE_FORMAT.get().format(new Date(thresholdMs));
 
         // Single query: all devices + their latest observation — no N+1
         List<DeviceEntity> allDevices = dao.getAllDevices();
@@ -126,12 +121,7 @@ public class NearbyDevicesViewModel extends AndroidViewModel {
     private long parseTimestamp(String timestamp) {
         if (timestamp == null) return 0;
         try {
-            SimpleDateFormat sdf = DATE_FORMAT.get();
-            if (sdf == null) {
-                sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-            }
-            Date date = sdf.parse(timestamp);
+            Date date = DATE_FORMAT.get().parse(timestamp);
             return date != null ? date.getTime() : 0;
         } catch (ParseException e) {
             return 0;

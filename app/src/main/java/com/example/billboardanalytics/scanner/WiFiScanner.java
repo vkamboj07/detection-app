@@ -135,11 +135,6 @@ public class WiFiScanner {
     }
 
     private String getCurrentTimestamp() {
-        SimpleDateFormat sdf = DATE_FORMAT.get();
-        if (sdf == null) {
-            sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        }
-        return sdf.format(new Date());
+        return DATE_FORMAT.get().format(new Date());
     }
 }

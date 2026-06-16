@@ -81,6 +81,10 @@ public class ScannerService extends Service {
         if (intent != null) {
             if (ACTION_TRIGGER_SYNC.equals(intent.getAction())) {
                 Log.d(TAG, "Sync action triggered via Intent");
+                // Must call startForeground() before returning on any code path in
+                // onStartCommand() when the service is started as a foreground service.
+                // Skipping it causes ForegroundServiceDidNotStartInTimeException on API 26+.
+                ensureForeground();
                 if (syncManager != null) {
                     syncManager.syncImmediately();
                 }
@@ -122,6 +126,18 @@ public class ScannerService extends Service {
         } catch (Exception e) {
             Log.e(TAG, "Failed to start foreground or scanners: " + e.getMessage());
         }
+        ensureForeground();
+
+        if (!scanningStarted) {
+            scanningStarted = true;
+            try {
+                bluetoothScanner.startScanning();
+                wifiScanner.startScanning();
+                startHeartbeat();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to start scanners: " + e.getMessage());
+            }
+        }
 
         // START_STICKY ensures the OS restarts the service if it gets killed for memory
         return START_STICKY;
@@ -134,7 +150,11 @@ public class ScannerService extends Service {
         stopHeartbeat();
 
         try {
-            stopForeground(true);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE);
+            } else {
+                stopForeground(true);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Error stopping foreground: " + e.getMessage());
         }
@@ -164,6 +184,31 @@ public class ScannerService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    private void ensureForeground() {
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE
+        );
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Billboard Analytics")
+                .setContentText("Scanning for nearby devices in the background...")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .build();
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIFICATION_ID, notification,
+                        android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION |
+                        android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+            } else {
+                startForeground(NOTIFICATION_ID, notification);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to start foreground: " + e.getMessage());
+        }
     }
 
     private void startHeartbeat() {

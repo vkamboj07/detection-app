@@ -108,7 +108,7 @@
             android:layout_marginBottom="8dp">
 
             <!-- Card 1: Current -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
@@ -124,10 +124,10 @@
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Current" android:textColor="#B0B0B0" android:textSize="14sp" />
                     <TextView android:id="@+id/tvCurrentDevices" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFFFFF" android:textSize="32sp" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Card 2: Today -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
@@ -143,10 +143,10 @@
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Today" android:textColor="#B0B0B0" android:textSize="14sp" />
                     <TextView android:id="@+id/tvTotalVisitors" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFFFFF" android:textSize="32sp" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Card 3: Returning -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
@@ -162,10 +162,10 @@
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Returning" android:textColor="#B0B0B0" android:textSize="14sp" />
                     <TextView android:id="@+id/tvReturningVisitors" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFFFFF" android:textSize="32sp" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Card 4: Avg Dwell -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
@@ -181,12 +181,12 @@
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Avg Dwell" android:textColor="#B0B0B0" android:textSize="14sp" />
                     <TextView android:id="@+id/tvAvgDwellTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0m" android:textColor="#FFFFFF" android:textSize="32sp" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
         </GridLayout>
 
         <!-- Peak Activity Card -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardBackgroundColor="#344845"
@@ -198,10 +198,10 @@
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Peak Activity (Mins Ago)" android:textColor="#D0D0D0" android:textSize="14sp" />
                 <TextView android:id="@+id/tvPeakHour" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-- mins ago" android:textColor="#FFFFFF" android:textSize="32sp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Active Devices Chart -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardBackgroundColor="#222222"
@@ -225,10 +225,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="200dp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Line Chart -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardBackgroundColor="#222222"
@@ -252,10 +252,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="150dp" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Category Breakdown -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardBackgroundColor="#222222"
@@ -279,10 +279,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="200dp"/>
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Protocol Breakdown -->
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardBackgroundColor="#222222"
@@ -306,7 +306,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="200dp"/>
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 </ScrollView>

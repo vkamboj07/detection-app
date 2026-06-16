@@ -3,6 +3,7 @@ package com.example.billboardanalytics.scanner;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanRecord;
@@ -43,7 +44,11 @@ public class BluetoothScanner {
     public BluetoothScanner(Context context, ObservationCallback callback) {
         this.context = context;
         this.callback = callback;
-        this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        // getDefaultAdapter() is deprecated on API 33+ — use BluetoothManager instead.
+        // BluetoothManager is available from API 18, which is well below our minSdk of 30.
+        android.bluetooth.BluetoothManager bluetoothManager =
+                (android.bluetooth.BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+        this.bluetoothAdapter = bluetoothManager != null ? bluetoothManager.getAdapter() : null;
 
         if (bluetoothAdapter != null) {
             this.bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
@@ -59,11 +64,16 @@ public class BluetoothScanner {
                 int rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE);
 
                 if (device != null) {
-                    int type = device.getType();
-                    // Skip BLE devices here — they are already captured by the BLE scan path (leScanCallback).
-                    // Reporting them again via ACTION_FOUND would double-count every BLE device.
-                    if (type == BluetoothDevice.DEVICE_TYPE_LE) {
-                        return;
+                    try {
+                        int type = device.getType();
+                        // Skip BLE devices here — they are already captured by the BLE scan path (leScanCallback).
+                        // Reporting them again via ACTION_FOUND would double-count every BLE device.
+                        if (type == BluetoothDevice.DEVICE_TYPE_LE) {
+                            return;
+                        }
+                    } catch (SecurityException e) {
+                        // BLUETOOTH_CONNECT not granted (API 31+); treat as non-BLE and proceed.
+                        Log.w(TAG, "SecurityException reading device type, treating as Classic BT: " + e.getMessage());
                     }
 
                     Observation obs = new Observation("BT_CLASSIC", device.getAddress(), rssi, getCurrentTimestamp());
@@ -148,12 +158,7 @@ public class BluetoothScanner {
     }
 
     private String getCurrentTimestamp() {
-        SimpleDateFormat sdf = DATE_FORMAT.get();
-        if (sdf == null) {
-            sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        }
-        return sdf.format(new Date());
+        return DATE_FORMAT.get().format(new Date());
     }
 
     private final ScanCallback leScanCallback = new ScanCallback() {

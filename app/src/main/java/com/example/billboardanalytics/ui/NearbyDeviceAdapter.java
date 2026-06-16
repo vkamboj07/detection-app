@@ -57,7 +57,7 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
                 return o.rssi == n.rssi
                         && o.status.equals(n.status)
                         && o.lastSeenText.equals(n.lastSeenText)
-                        && (o.distanceMeters == n.distanceMeters);
+                        && (Math.abs(o.distanceMeters - n.distanceMeters) < 0.05);
             }
 
             @NonNull

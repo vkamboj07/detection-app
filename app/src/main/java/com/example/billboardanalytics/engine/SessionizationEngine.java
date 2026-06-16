@@ -51,6 +51,10 @@ public class SessionizationEngine {
     }
 
     public void processDetection(String deviceIdentifier, String source, int rssi) {
+        if (executor.isShutdown()) {
+            Log.w(TAG, "Ignoring detection — engine is shut down");
+            return;
+        }
         executor.execute(() -> {
             String timestamp = getCurrentTimestamp();
 
@@ -140,12 +144,13 @@ public class SessionizationEngine {
     }
 
     private long parseTimestamp(String timestamp) {
+        if (timestamp == null) return 0;
         try {
             Date date = DATE_FORMAT.get().parse(timestamp);
-            return date != null ? date.getTime() : System.currentTimeMillis();
+            return date != null ? date.getTime() : 0;
         } catch (ParseException e) {
             Log.e(TAG, "Error parsing timestamp: " + timestamp, e);
-            return System.currentTimeMillis();
+            return 0;
         }
     }
 

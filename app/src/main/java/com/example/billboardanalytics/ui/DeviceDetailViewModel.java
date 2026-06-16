@@ -28,15 +28,19 @@ public class DeviceDetailViewModel extends AndroidViewModel {
     private static final String TAG = "DeviceDetailViewModel";
     private final AnalyticsDao dao;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private final SimpleDateFormat dateFormat;
+
+    // SimpleDateFormat is NOT thread-safe — use ThreadLocal so the background thread gets its own instance
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return sdf;
+    });
 
     private final MutableLiveData<DeviceDetailData> detailData = new MutableLiveData<>();
 
     public DeviceDetailViewModel(@NonNull Application application) {
         super(application);
         dao = AppDatabase.getDatabase(application).analyticsDao();
-        dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     public LiveData<DeviceDetailData> getDetailData() {
@@ -87,10 +91,9 @@ public class DeviceDetailViewModel extends AndroidViewModel {
     private String formatDateString(String isoDate) {
         if (isoDate == null) return "Unknown";
         try {
-            Date date = dateFormat.parse(isoDate);
+            Date date = DATE_FORMAT.get().parse(isoDate);
             if (date != null) {
                 // Display in device local time so the user sees a meaningful clock value.
-                // Explicitly set timezone so the label is unambiguous regardless of locale.
                 SimpleDateFormat outFormat = new SimpleDateFormat("MMM dd, HH:mm:ss z", Locale.US);
                 return outFormat.format(date);
             }

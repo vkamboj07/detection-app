@@ -86,14 +86,13 @@ public class MainActivity extends AppCompatActivity {
             if (isTracking) {
                 stopScannerService();
             } else {
-                // Mark as tracking before the permission flow so that when
-                // checkAndRequestPermissions() eventually calls startScannerService()
-                // (either directly or via onRequestPermissionsResult), isTracking is
-                // already true and the service actually starts.
-                isTracking = true;
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                        .putBoolean(KEY_IS_TRACKING, true).apply();
-                startNewSession();
+                // Show confirmation before wiping all historical data
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("Start New Session")
+                        .setMessage("This will permanently delete all previously recorded data. Continue?")
+                        .setPositiveButton("Start", (dialog, which) -> startNewSession())
+                        .setNegativeButton("Cancel", null)
+                        .show();
             }
         });
         btnLiveDevices.setOnClickListener(v -> startActivity(new Intent(this, NearbyDevicesActivity.class)));
@@ -242,6 +241,10 @@ public class MainActivity extends AppCompatActivity {
                         .remove("last_synced_session_id")
                         .apply();
                 runOnUiThread(() -> {
+                    // Only mark as tracking after the database has been successfully cleared
+                    isTracking = true;
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                            .putBoolean(KEY_IS_TRACKING, true).apply();
                     Toast.makeText(this, "Previous data cleared. New tracking session started.", Toast.LENGTH_LONG).show();
                     // Route through the permission flow — if permissions were revoked since
                     // last launch, this will re-request them before starting the service.
