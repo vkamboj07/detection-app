@@ -32,7 +32,6 @@ public class ScannerService extends Service {
     private static final int NOTIFICATION_ID = 1;
 
     public static final String ACTION_TRIGGER_SYNC = "com.example.billboardanalytics.ACTION_TRIGGER_SYNC";
-    public static final String ACTION_STOP = "com.example.billboardanalytics.ACTION_STOP";
 
     // Heartbeat: automatically sync any unsent data to the cloud every 60 seconds.
     // This covers quiet periods where no new detections occur.
@@ -170,7 +169,7 @@ public class ScannerService extends Service {
     private void startHeartbeat() {
         if (heartbeatScheduler != null && !heartbeatScheduler.isShutdown()) return;
         heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
-        heartbeatFuture = heartbeatScheduler.scheduleAtFixedRate(() -> {
+        heartbeatFuture = heartbeatScheduler.scheduleWithFixedDelay(() -> {
             if (syncManager != null) {
                 Log.d(TAG, "Heartbeat: triggering automatic background sync.");
                 syncManager.syncAsync();
