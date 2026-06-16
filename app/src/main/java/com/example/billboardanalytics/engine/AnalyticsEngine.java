@@ -83,7 +83,7 @@ public class AnalyticsEngine {
 
             // Check if returning
             DeviceEntity device = deviceMap.get(session.deviceId);
-            if (device != null) {
+            if (device != null && device.firstSeen != null) {
                 long firstSeenMs = parseTimestamp(device.firstSeen);
                 if (firstSeenMs < startOfDayMs) {
                     returningVisitorsToday.add(device.id);

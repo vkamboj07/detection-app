@@ -45,9 +45,9 @@ public final class DeviceCategory {
         }
 
         // Normalize: upper-case, strip separators, take first 6 hex chars (3 octets = OUI)
-        String normalised = deviceIdentifier.toUpperCase().replace(":", "").replace("-", "");
-        if (normalised.length() < 6) return "Unknown";
-        String oui = normalised.substring(0, 6);
+        String normalized = deviceIdentifier.toUpperCase().replace(":", "").replace("-", "");
+        if (normalized.length() < 6) return "Unknown";
+        String oui = normalized.substring(0, 6);
 
         return lookupOui(oui);
     }

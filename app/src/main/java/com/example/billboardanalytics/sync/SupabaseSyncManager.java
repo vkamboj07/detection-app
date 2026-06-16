@@ -20,7 +20,10 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -40,7 +43,9 @@ public class SupabaseSyncManager {
 
     private static final String TAG = "SupabaseSyncManager";
     private static final String PREFS_NAME = "sync_prefs";
-    private static final String KEY_LAST_SYNCED_OBS_ID     = "last_synced_obs_id";
+    private static final String KEY_LAST_SYNCED_OBS_ID      = "last_synced_obs_id";
+    private static final String KEY_LAST_SYNCED_SESSION_ID  = "last_synced_session_id";
+    private static final String KEY_DIRTY_SESSION_IDS       = "dirty_session_ids";
     private static final int    BATCH_SIZE       = 50;
     private static final long   DEBOUNCE_SECONDS = 10;  // wait this long after last detection before uploading
     private static final long   MAX_WAIT_SECONDS = 30;  // but never delay more than this — guarantees upload
@@ -109,6 +114,16 @@ public class SupabaseSyncManager {
         } catch (RejectedExecutionException e) {
             Log.w(TAG, "syncImmediately rejected — scheduler is shut down");
         }
+    }
+
+    /**
+     * Marks a session as dirty so the next sync cycle will re-upload it
+     * (capturing duration updates from extended visits).
+     */
+    public synchronized void markSessionDirty(long sessionId) {
+        Set<String> dirty = new HashSet<>(prefs.getStringSet(KEY_DIRTY_SESSION_IDS, Collections.emptySet()));
+        dirty.add(String.valueOf(sessionId));
+        prefs.edit().putStringSet(KEY_DIRTY_SESSION_IDS, dirty).apply();
     }
 
     /** Call when the service is destroyed to release resources. */
@@ -192,25 +207,37 @@ public class SupabaseSyncManager {
     // -------------------------------------------------------------------------
 
     private void syncSessions() throws IOException, JSONException {
-        // Upload ALL sessions (not just new ones) so that duration updates from
-        // extended sessions are pushed to Supabase. Sessions are relatively few
-        // (one per device visit), so this is efficient.
+        long lastSyncedId = prefs.getLong(KEY_LAST_SYNCED_SESSION_ID, 0);
+        Set<String> dirtySet = new HashSet<>(prefs.getStringSet(KEY_DIRTY_SESSION_IDS, Collections.emptySet()));
+        boolean hasDirty = !dirtySet.isEmpty();
+
         List<SessionEntity> allSessions = dao.getAllSessions();
         if (allSessions.isEmpty()) return;
 
         JSONArray body = new JSONArray();
+        long maxId = lastSyncedId;
+
         for (SessionEntity s : allSessions) {
-            JSONObject obj = new JSONObject();
-            obj.put("id",         s.id);
-            obj.put("device_id",  s.deviceId);
-            obj.put("start_time", s.startTime != null ? s.startTime : JSONObject.NULL);
-            obj.put("end_time",   s.endTime   != null ? s.endTime   : JSONObject.NULL);
-            obj.put("duration",   s.duration);
-            body.put(obj);
+            if (s.id > lastSyncedId || (hasDirty && dirtySet.contains(String.valueOf(s.id)))) {
+                JSONObject obj = new JSONObject();
+                obj.put("id",         s.id);
+                obj.put("device_id",  s.deviceId);
+                obj.put("start_time", s.startTime != null ? s.startTime : JSONObject.NULL);
+                obj.put("end_time",   s.endTime   != null ? s.endTime   : JSONObject.NULL);
+                obj.put("duration",   s.duration);
+                body.put(obj);
+                if (s.id > maxId) maxId = s.id;
+            }
         }
 
+        if (body.length() == 0) return;
+
         post(supabaseUrl + "/rest/v1/sessions?on_conflict=id", body.toString());
-        Log.d(TAG, "Synced " + allSessions.size() + " session(s) with current durations.");
+        prefs.edit()
+            .putLong(KEY_LAST_SYNCED_SESSION_ID, maxId)
+            .putStringSet(KEY_DIRTY_SESSION_IDS, Collections.emptySet())
+            .apply();
+        Log.d(TAG, "Synced " + body.length() + " session(s).");
     }
 
     // -------------------------------------------------------------------------

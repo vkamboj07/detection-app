@@ -36,7 +36,7 @@ public class SessionizationEngine {
     private final ExecutorService executor = new ThreadPoolExecutor(
             1, 1, 0L, TimeUnit.MILLISECONDS,
             new LinkedBlockingQueue<>(MAX_QUEUE_DEPTH),
-            new ThreadPoolExecutor.DiscardPolicy());
+            (r, executor) -> Log.w(TAG, "Detection dropped \u2014 queue full, consider reducing scan rate"));
 
     // SimpleDateFormat is NOT thread-safe — use ThreadLocal to give each thread its own instance
     private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
@@ -111,7 +111,7 @@ public class SessionizationEngine {
                     latestSession.endTime = timestamp;
                     latestSession.duration = currentTime - parseTimestamp(latestSession.startTime);
                     dao.updateSession(latestSession);
-                    // duration updated — automatic sync will pick it up
+                    syncManager.markSessionDirty(latestSession.id);
                 }
             }
 

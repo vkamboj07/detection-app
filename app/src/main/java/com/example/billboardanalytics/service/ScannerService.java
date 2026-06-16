@@ -128,17 +128,6 @@ public class ScannerService extends Service {
         }
         ensureForeground();
 
-        if (!scanningStarted) {
-            scanningStarted = true;
-            try {
-                bluetoothScanner.startScanning();
-                wifiScanner.startScanning();
-                startHeartbeat();
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to start scanners: " + e.getMessage());
-            }
-        }
-
         // START_STICKY ensures the OS restarts the service if it gets killed for memory
         return START_STICKY;
     }

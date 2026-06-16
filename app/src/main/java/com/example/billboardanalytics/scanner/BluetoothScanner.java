@@ -12,6 +12,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.util.Log;
 
 import com.example.billboardanalytics.data.Observation;
@@ -19,7 +20,9 @@ import com.example.billboardanalytics.data.Observation;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BluetoothScanner {
     private static final String TAG = "BluetoothScanner";
@@ -30,6 +33,11 @@ public class BluetoothScanner {
     private final ObservationCallback callback;
 
     private boolean isScanning = false;
+
+    // Dedup window to avoid processing the same MAC twice within 2 seconds
+    // (onBatchScanResults may deliver results already received via onScanResult).
+    private static final long DEDUP_WINDOW_MS = 2000;
+    private final Map<String, Long> recentlyProcessed = new ConcurrentHashMap<>();
 
     private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
@@ -98,7 +106,11 @@ public class BluetoothScanner {
 
         // Register classic BT discovery receiver
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        context.registerReceiver(classicBtReceiver, filter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(classicBtReceiver, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            context.registerReceiver(classicBtReceiver, filter);
+        }
 
         startLeScan();
         startClassicDiscovery();
@@ -151,14 +163,31 @@ public class BluetoothScanner {
 
     @SuppressLint("MissingPermission")
     private void startClassicDiscovery() {
-        if (bluetoothAdapter != null && !bluetoothAdapter.isDiscovering()) {
-            bluetoothAdapter.startDiscovery();
-            Log.d(TAG, "Started Classic BT discovery");
+        if (bluetoothAdapter != null) {
+            try {
+                bluetoothAdapter.cancelDiscovery();
+            } catch (Exception e) {
+                Log.e(TAG, "Error cancelling previous discovery: " + e.getMessage());
+            }
+            if (!bluetoothAdapter.isDiscovering()) {
+                bluetoothAdapter.startDiscovery();
+                Log.d(TAG, "Started Classic BT discovery");
+            }
         }
     }
 
     private String getCurrentTimestamp() {
         return DATE_FORMAT.get().format(new Date());
+    }
+
+    private boolean isDuplicate(String mac) {
+        long now = System.currentTimeMillis();
+        Long prev = recentlyProcessed.put(mac, now);
+        boolean dup = prev != null && (now - prev) < DEDUP_WINDOW_MS;
+        if (recentlyProcessed.size() > 500) {
+            recentlyProcessed.entrySet().removeIf(e -> (now - e.getValue()) > DEDUP_WINDOW_MS);
+        }
+        return dup;
     }
 
     private final ScanCallback leScanCallback = new ScanCallback() {
@@ -170,7 +199,7 @@ public class BluetoothScanner {
             int rssi = result.getRssi();
             ScanRecord record = result.getScanRecord();
 
-            if (device != null) {
+            if (device != null && !isDuplicate(device.getAddress())) {
                 Observation obs = new Observation("BLE", device.getAddress(), rssi, getCurrentTimestamp());
 
                 if (record != null) {
@@ -186,6 +215,8 @@ public class BluetoothScanner {
                             obs.setManufacturerData(String.format(Locale.US, "%04X", key) + bytesToHex(mfBytes));
                         }
                     }
+
+                    obs.setDeviceName(record.getDeviceName());
                 }
 
                 if (callback != null) {
@@ -210,11 +241,15 @@ public class BluetoothScanner {
         }
     };
 
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+
     private String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format(Locale.US, "%02X", b));
+        char[] hexChars = new char[bytes.length * 2];
+        for (int i = 0; i < bytes.length; i++) {
+            int v = bytes[i] & 0xFF;
+            hexChars[i * 2]     = HEX_ARRAY[v >>> 4];
+            hexChars[i * 2 + 1] = HEX_ARRAY[v & 0x0F];
         }
-        return sb.toString();
+        return new String(hexChars);
     }
 }
