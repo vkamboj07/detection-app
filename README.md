@@ -303,6 +303,131 @@ Charts are rendered with Recharts. The footfall line chart uses 5-minute aligned
 
 ---
 
+## FootfallAnalytics SDK (`sdktest/`)
+
+A standalone Android library that wraps the core scanning, sessionization, and analytics engine so third-party apps can integrate footfall detection without building their own BLE/Wi-Fi pipeline.
+
+### SDK Module
+
+```
+sdktest/
+└── src/main/java/com/footfallanalytics/sdk/
+    ├── FootfallAnalyticsSDK.java    # Singleton entry point
+    ├── SDKConfig.java                # Builder-pattern configuration
+    ├── FootfallListener.java         # Callback interface
+    ├── model/                        # Public data models
+    │   ├── Observation.java          # Single detection (Gson-serializable)
+    │   ├── DeviceInfo.java           # Device metadata
+    │   ├── SessionInfo.java          # Visit session
+    │   └── FootfallMetrics.java      # Computed analytics
+    ├── scanner/                      # Internal — BLE + Wi-Fi scanning
+    ├── engine/                       # Internal — sessionization + metrics
+    ├── data/                         # Internal — Room database (3 entities, DAO)
+    ├── sync/                         # Internal — Supabase REST uploader
+    └── util/                         # Internal — OUI device categorisation
+```
+
+### Quick Start
+
+**1. Add dependency** (after publishing or using a local AAR)
+
+```groovy
+// settings.gradle
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://jitpack.io" }
+    }
+}
+
+// app/build.gradle
+dependencies {
+    implementation project(':sdktest')
+    // or: implementation 'com.github.your-org:footfall-analytics-sdk:1.0.0'
+}
+```
+
+**2. Initialise in your Application or Activity**
+
+```java
+SDKConfig config = new SDKConfig.Builder()
+    .setSupabaseUrl("https://YOUR_PROJECT.supabase.co")
+    .setSupabaseAnonKey("YOUR_ANON_KEY")
+    .build();
+
+FootfallAnalyticsSDK sdk = FootfallAnalyticsSDK.getInstance();
+sdk.initialize(this, config);
+sdk.setListener(new FootfallListener() {
+    @Override public void onObservationDetected(Observation obs) { }
+    @Override public void onMetricsUpdated(FootfallMetrics metrics) { }
+    @Override public void onScanningStarted() { }
+    @Override public void onScanningStopped() { }
+    @Override public void onError(String msg, Throwable cause) { }
+});
+```
+
+**3. Start / stop scanning**
+
+```java
+sdk.startScanning();  // Begins BLE + Wi-Fi scanning
+// ...
+FootfallMetrics metrics = sdk.getMetrics();  // One-shot query
+// ...
+sdk.stopScanning();
+sdk.shutdown();
+```
+
+### Public API Reference
+
+| Method | Description |
+|--------|-------------|
+| `getInstance()` | Returns the singleton instance |
+| `initialize(context, config)` | Initialises Room DB, scanners, engine, and sync |
+| `setListener(listener)` | Registers a `FootfallListener` for callbacks |
+| `startScanning()` | Starts BLE + Wi-Fi scanning + 5-second metrics polling |
+| `stopScanning()` | Stops all scanners and polling |
+| `isScanning()` | Returns whether scanning is active |
+| `getMetrics()` | Synchronous query — computes `FootfallMetrics` for today |
+| `triggerSync()` | Forces an immediate upload to Supabase |
+| `shutdown()` | Stops scanning, shuts down executors, releases resources |
+
+### SDKConfig.Builder Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `setSupabaseUrl(url)` | `""` | Supabase project URL (omit to disable cloud sync) |
+| `setSupabaseAnonKey(key)` | `""` | Supabase anonymous key |
+| `setSessionTimeoutMs(ms)` | `600_000` (10 min) | Inactivity threshold for session expiry |
+| `setWifiPollIntervalMs(ms)` | `15_000` (15 s) | Interval for polling Wi-Fi scan cache |
+| `setClassicBtScanningEnabled(bool)` | `true` | Whether to also run classic Bluetooth discovery |
+
+### FootfallListener Callbacks
+
+| Callback | Fires |
+|----------|-------|
+| `onObservationDetected(obs)` | Each BLE / Wi-Fi / BT Classic detection (main thread) |
+| `onMetricsUpdated(metrics)` | Every 5 seconds while scanning (main thread) |
+| `onScanningStarted()` | After scanners begin |
+| `onScanningStopped()` | After scanners stop |
+| `onError(msg, cause)` | On metrics computation failure |
+
+### Required Permissions
+
+The SDK declares all necessary permissions in its own manifest. The host app must still **request runtime permissions** before calling `startScanning()`:
+
+- `BLUETOOTH_SCAN` (API 31+) / `BLUETOOTH` + `BLUETOOTH_ADMIN` (API 30)
+- `BLUETOOTH_CONNECT` (API 31+) — reads device names
+- `ACCESS_FINE_LOCATION` — required by Android for BLE scan results
+- `ACCESS_COARSE_LOCATION` — fallback
+- `ACCESS_BACKGROUND_LOCATION` — scan while app is in background
+- `ACCESS_WIFI_STATE` — read Wi-Fi scan cache
+- `CHANGE_WIFI_STATE` — trigger Wi-Fi scans
+- `INTERNET` — Supabase REST uploads
+
+---
+
 ## Android Permissions
 
 | Permission | Reason |

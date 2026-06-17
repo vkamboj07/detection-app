@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace 'com.analytics.testsdk'
+    namespace 'com.footfallanalytics.sdk'
     compileSdk 36
 
     defaultConfig {
@@ -17,11 +17,21 @@ android {
         targetCompatibility JavaVersion.VERSION_11
     }
 
+    buildFeatures {
+        buildConfig true
+    }
 }
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'com.google.android.material:material:1.14.0'
+
+    def room_version = "2.6.0"
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
+
+    implementation 'com.google.code.gson:gson:2.11.0'
+
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
     androidTestImplementation 'androidx.test.ext:junit:1.3.0'
