@@ -19,6 +19,7 @@ import com.footfallanalytics.sdk.model.Observation;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
@@ -37,11 +38,14 @@ public class BluetoothScanner {
     private volatile boolean isScanning = false;
     private final Map<String, Long> recentlyProcessed = new ConcurrentHashMap<>();
 
-    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return sdf;
-    });
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
+        @Override
+        protected SimpleDateFormat initialValue() {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+            return sdf;
+        }
+    };
 
     public interface ObservationCallback {
         void onObservationDetected(Observation observation);
@@ -52,7 +56,7 @@ public class BluetoothScanner {
         this.callback = callback;
         this.enableClassicScanning = enableClassicScanning;
         BluetoothManager bluetoothManager =
-                (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+                (BluetoothManager) context.getApplicationContext().getSystemService(Context.BLUETOOTH_SERVICE);
         this.bluetoothAdapter = bluetoothManager != null ? bluetoothManager.getAdapter() : null;
         if (bluetoothAdapter != null) {
             this.bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
@@ -147,7 +151,12 @@ public class BluetoothScanner {
         Long prev = recentlyProcessed.put(mac, now);
         boolean dup = prev != null && (now - prev) < DEDUP_WINDOW_MS;
         if (recentlyProcessed.size() > 500) {
-            recentlyProcessed.entrySet().removeIf(e -> (now - e.getValue()) > DEDUP_WINDOW_MS);
+            Iterator<Map.Entry<String, Long>> it = recentlyProcessed.entrySet().iterator();
+            while (it.hasNext()) {
+                if ((now - it.next().getValue()) > DEDUP_WINDOW_MS) {
+                    it.remove();
+                }
+            }
         }
         return dup;
     }

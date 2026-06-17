@@ -17,6 +17,7 @@ import com.example.billboardanalytics.util.DeviceCategory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapter.ViewHolder> {
     private List<NearbyDevice> devices = new ArrayList<>();
@@ -55,8 +56,8 @@ public class NearbyDeviceAdapter extends RecyclerView.Adapter<NearbyDeviceAdapte
                 NearbyDevice n = newDevices.get(newPos);
                 // Redraw only if visible fields changed
                 return o.rssi == n.rssi
-                        && o.status.equals(n.status)
-                        && o.lastSeenText.equals(n.lastSeenText)
+                        && Objects.equals(o.status, n.status)
+                        && Objects.equals(o.lastSeenText, n.lastSeenText)
                         && (Math.abs(o.distanceMeters - n.distanceMeters) < 0.05);
             }
 

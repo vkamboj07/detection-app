@@ -37,7 +37,7 @@ Footfall Analytics is a two-part system that measures how many people pass by or
 | Project Name | BillboardAnalytics (Footfall Tracker) |
 | Package | `com.example.billboardanalytics` |
 | Min SDK | API 30 (Android 11) |
-| Target SDK | API 36 |
+| Target SDK | API 35 |
 | Architecture | MVVM + Foreground Service |
 | Local Database | Room (SQLite) v2.6.0 |
 | Cloud Database | Supabase (PostgreSQL) |
@@ -468,11 +468,11 @@ cd footfall-analytics
 
 1. Open the root folder in Android Studio
 2. Let Gradle sync complete (`File → Sync Project with Gradle Files`)
-3. Open `app/src/main/res/values/strings.xml` and replace the placeholder credentials:
+3. Open `local.properties` at the project root and add your Supabase credentials:
 
-```xml
-<string name="supabase_url">https://YOUR_PROJECT_ID.supabase.co</string>
-<string name="supabase_anon_key">YOUR_SUPABASE_ANON_KEY</string>
+```properties
+SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
+SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 ```
 
 4. Connect your Android device with USB debugging enabled
@@ -612,7 +612,7 @@ npm run build
 - **7×24 hour-of-week heatmap** — Average footfall per hour per day of week for pattern analysis
 - **Multi-location support** — Add a `location_id` to devices and observations so one dashboard can compare footfall across multiple billboards
 - **Battery optimisation prompt** — Guide users to whitelist the app from battery optimisation via `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`
-- **Credential security** — Move Supabase credentials from `strings.xml` to `local.properties` and inject via `BuildConfig` at build time
+- **Credential UI** — Add a settings screen in the Android app to configure Supabase credentials at runtime
 - **RecyclerView DiffUtil** — Replace `notifyDataSetChanged()` in `NearbyDeviceAdapter` with `DiffUtil.ItemCallback` for smooth, animated list updates
 - **CSV export** — Replace the plain-text share export with a proper CSV written to the Downloads folder via `MediaStore`
 - **Dashboard date range picker** — Allow the web dashboard to query historical data beyond the default 24-hour window

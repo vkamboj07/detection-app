@@ -116,7 +116,6 @@ public class MainActivity extends AppCompatActivity {
     // Request codes for the two-stage permission flow
     private static final int REQ_CORE_PERMISSIONS       = 1001;
     private static final int REQ_BACKGROUND_LOCATION    = 1002;
-    private static final int REQ_POST_NOTIFICATIONS     = 1003;
 
     /**
      * Stage 1 — core permissions: Bluetooth + fine/coarse location + notifications (API 33+).
@@ -201,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
             // Core permissions OK — request background location next
             requestBackgroundLocationIfNeeded();
 
-        } else if (requestCode == REQ_BACKGROUND_LOCATION || requestCode == REQ_POST_NOTIFICATIONS) {
+        } else if (requestCode == REQ_BACKGROUND_LOCATION) {
             // Background location denial is non-fatal — foreground scanning still works.
             // Either way, proceed to start the service if tracking was requested.
             if (isTracking) {

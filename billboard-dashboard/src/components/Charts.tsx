@@ -143,7 +143,7 @@ export function DeviceTypeDistribution() {
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip contentStyle={TOOLTIP_STYLE.contentStyle} />
+            <Tooltip {...TOOLTIP_STYLE} />
             <Legend />
           </PieChart>
         </ResponsiveContainer>
@@ -196,7 +196,7 @@ export function CategoryDistribution() {
                 <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip contentStyle={TOOLTIP_STYLE.contentStyle} />
+            <Tooltip {...TOOLTIP_STYLE} />
             <Legend />
           </PieChart>
         </ResponsiveContainer>

@@ -22,11 +22,14 @@ import java.util.TimeZone;
 public class AnalyticsEngine {
     private final AnalyticsDao dao;
 
-    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return sdf;
-    });
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
+        @Override
+        protected SimpleDateFormat initialValue() {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+            return sdf;
+        }
+    };
 
     public AnalyticsEngine(AnalyticsDao dao) {
         this.dao = dao;
@@ -70,7 +73,8 @@ public class AnalyticsEngine {
             uniqueVisitorsToday.add(session.deviceId);
             totalDwellTime += session.duration;
             int hour = getHourFromTimestamp(session.startTime);
-            hourlyTrend.merge(hour, 1, Integer::sum);
+            Integer prevHourly = hourlyTrend.get(hour);
+            hourlyTrend.put(hour, (prevHourly == null ? 0 : prevHourly) + 1);
 
             DeviceEntity device = deviceMap.get(session.deviceId);
             if (device != null && device.firstSeen != null) {
@@ -97,15 +101,18 @@ public class AnalyticsEngine {
             DeviceEntity device = deviceMap.get(deviceId);
             if (device != null) {
                 String source = device.source != null ? device.source : "UNKNOWN";
+                String sourceKey = "Unknown";
                 if ("WIFI".equals(source)) {
-                    sourceDistribution.merge("Wi-Fi", 1, Integer::sum);
+                    sourceKey = "Wi-Fi";
                 } else if ("BLE".equals(source) || "BT_CLASSIC".equals(source)) {
-                    sourceDistribution.merge("Bluetooth", 1, Integer::sum);
-                } else {
-                    sourceDistribution.merge("Unknown", 1, Integer::sum);
+                    sourceKey = "Bluetooth";
                 }
+                Integer prevSrc = sourceDistribution.get(sourceKey);
+                sourceDistribution.put(sourceKey, (prevSrc == null ? 0 : prevSrc) + 1);
+
                 String category = DeviceCategory.resolve(source, device.deviceIdentifier);
-                categoryDistribution.merge(category, 1, Integer::sum);
+                Integer prevCat = categoryDistribution.get(category);
+                categoryDistribution.put(category, (prevCat == null ? 0 : prevCat) + 1);
             }
         }
 

@@ -1,5 +1,7 @@
 package com.footfallanalytics.sdk.util;
 
+import java.util.Locale;
+
 public final class DeviceCategory {
 
     private DeviceCategory() {}
@@ -14,14 +16,14 @@ public final class DeviceCategory {
         }
 
         try {
-            String firstOctetHex = deviceIdentifier.substring(0, 2).toUpperCase();
+            String firstOctetHex = deviceIdentifier.substring(0, 2).toUpperCase(Locale.ROOT);
             int firstOctet = Integer.parseInt(firstOctetHex, 16);
             if ((firstOctet & 0x02) != 0) {
                 return "Mobile Device";
             }
         } catch (NumberFormatException ignored) {}
 
-        String normalized = deviceIdentifier.toUpperCase().replace(":", "").replace("-", "");
+        String normalized = deviceIdentifier.toUpperCase(Locale.ROOT).replace(":", "").replace("-", "");
         if (normalized.length() < 6) return "Unknown";
         String oui = normalized.substring(0, 6);
 

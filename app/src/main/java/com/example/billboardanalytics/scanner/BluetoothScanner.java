@@ -84,11 +84,13 @@ public class BluetoothScanner {
                         Log.w(TAG, "SecurityException reading device type, treating as Classic BT: " + e.getMessage());
                     }
 
-                    Observation obs = new Observation("BT_CLASSIC", device.getAddress(), rssi, getCurrentTimestamp());
-                    if (callback != null) {
-                        callback.onObservationDetected(obs);
+                    if (!isDuplicate(device.getAddress())) {
+                        Observation obs = new Observation("BT_CLASSIC", device.getAddress(), rssi, getCurrentTimestamp());
+                        if (callback != null) {
+                            callback.onObservationDetected(obs);
+                        }
+                        Log.d(TAG, "Classic BT detected: " + device.getAddress() + " RSSI=" + rssi);
                     }
-                    Log.d(TAG, "Classic BT detected: " + device.getAddress() + " RSSI=" + rssi);
                 }
             }
         }

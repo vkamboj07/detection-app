@@ -58,7 +58,7 @@ public interface AnalyticsDao {
     int getObservationCountForSession(long deviceId, String startTime, String endTime);
 
     // --- Analytics ---
-    @Query("SELECT * FROM sessions WHERE start_time >= :startOfDay AND start_time <= :endOfDay")
+    @Query("SELECT * FROM sessions WHERE start_time <= :endOfDay AND end_time >= :startOfDay")
     List<SessionEntity> getSessionsForDateRange(String startOfDay, String endOfDay);
 
     @Query("SELECT COUNT(DISTINCT device_id) FROM observations WHERE timestamp >= :timestamp")

@@ -1,7 +1,6 @@
 plugins {
     id 'com.android.application'
 }
-
 // Read sensitive credentials from local.properties (not committed to source control).
 // If the file or keys are missing, fall back to empty strings so the build doesn't break
 // on CI or fresh checkouts — the sync manager will skip uploading when credentials are empty.
@@ -13,12 +12,12 @@ if (localPropsFile.exists()) {
 
 android {
     namespace 'com.example.billboardanalytics'
-    compileSdk 36
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.example.billboardanalytics"
         minSdk 30
-        targetSdk 36
+        targetSdk 35
         versionCode 1
         versionName "1.0"
 

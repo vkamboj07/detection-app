@@ -15,5 +15,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "BillboardAnalytics"
 include ':app'
-include ':testsdk'
 include ':sdktest'

@@ -101,7 +101,7 @@ public class NearbyDevicesViewModel extends AndroidViewModel {
 
     private double calculateDistance(int rssi) {
         int txPower = -59;
-        if (rssi == 0) return -1.0;
+        if (rssi >= 0) return -1.0;
         double ratio = ((double) txPower - rssi) / (10.0 * 2.0);
         return Math.pow(10, ratio);
     }

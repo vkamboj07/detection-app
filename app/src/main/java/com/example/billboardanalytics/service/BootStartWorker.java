@@ -33,10 +33,14 @@ public class BootStartWorker extends Worker {
         }
 
         Log.d(TAG, "Tracking was active before reboot — restarting ScannerService.");
+        Intent serviceIntent = new Intent(getApplicationContext(), ScannerService.class);
         try {
-            Intent serviceIntent = new Intent(getApplicationContext(), ScannerService.class);
             getApplicationContext().startForegroundService(serviceIntent);
             return Result.success();
+        } catch (android.app.ForegroundServiceStartNotAllowedException e) {
+            Log.e(TAG, "Android 12+ restriction: cannot start foreground service from background. " +
+                    "Consider using an app-whitelist or scheduling via a user-visible action.", e);
+            return Result.failure();
         } catch (Exception e) {
             Log.e(TAG, "Failed to start ScannerService from WorkManager: " + e.getMessage());
             return Result.retry();

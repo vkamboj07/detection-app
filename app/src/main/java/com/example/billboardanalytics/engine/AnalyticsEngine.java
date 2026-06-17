@@ -182,8 +182,6 @@ public class AnalyticsEngine {
         metrics.currentNearbyDevices = dao.getNearbyDevicesCount(fiveMinsAgoStr);
         metrics.returningVisitors = returningVisitorsToday.size();
         metrics.averageDwellTimeMs = todaySessions.isEmpty() ? 0 : totalDwellTime / todaySessions.size();
-        metrics.peakHour = todaySessions.isEmpty() ? "N/A" : String.format(Locale.US, "%02d:00 – %02d:00",
-                peakHour, (peakHour + 1) % 24);
         metrics.peakActivityMinsAgo = peakActivityText;
         metrics.hourlyTrafficTrend = hourlyTrend;
         metrics.last5MinutesTrend = last5MinsTrend;

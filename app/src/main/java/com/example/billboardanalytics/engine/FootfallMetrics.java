@@ -7,7 +7,6 @@ public class FootfallMetrics {
     public int currentNearbyDevices;
     public int returningVisitors;
     public long averageDwellTimeMs;
-    public String peakHour; // e.g. "14:00 - 15:00"
     
     // Hourly Traffic Trend: Map of Hour (0-23) -> Number of Sessions
     public Map<Integer, Integer> hourlyTrafficTrend;

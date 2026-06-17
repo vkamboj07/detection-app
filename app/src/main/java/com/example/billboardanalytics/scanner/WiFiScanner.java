@@ -101,8 +101,10 @@ public class WiFiScanner {
             // returns false, but when it works it triggers the OS to refresh the cache.
             try {
                 wifiManager.startScan();
-            } catch (Exception ignored) {
-                // Throttled or missing permission — rely on cache polling instead.
+            } catch (SecurityException e) {
+                Log.w(TAG, "Missing permission for startScan: " + e.getMessage());
+            } catch (Exception e) {
+                Log.w(TAG, "startScan throttled or failed: " + e.getMessage());
             }
 
             List<ScanResult> results = wifiManager.getScanResults();
