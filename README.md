@@ -22,11 +22,11 @@
 
 Footfall Analytics is a two-part system that measures how many people pass by or linger near a physical location — such as a billboard, retail storefront, or event venue — by passively detecting the Bluetooth and Wi-Fi signals emitted by their personal devices.
 
-**The problem it solves:** Traditional footfall counters use cameras or infrared beams that require line-of-sight installation. This system requires only an Android phone or tablet placed near the target location. No cameras, no infrastructure changes, no privacy invasion — just RF signal detection.
+**The problem it solves:** Traditional footfall counters use cameras or infrared beams requiring line-of-sight. This system needs only an Android phone placed near the target location — no cameras, no infrastructure changes, no privacy invasion.
 
-**Why Bluetooth and Wi-Fi:** Almost every person carries a smartphone that continuously broadcasts Bluetooth Low Energy (BLE) advertising packets and Wi-Fi probe requests. These signals are detectable at distances of 10–30 metres and contain a MAC address that can be used as an anonymous device identifier.
+**Why Bluetooth and Wi-Fi:** Almost everyone carries a smartphone that continuously broadcasts BLE advertising packets and Wi-Fi probe requests. These signals are detectable at 10–30 metres and contain an anonymous MAC address used as a device identifier.
 
-**How analytics are generated:** The Android app collects raw detections, groups them into visits (sessions) using a 10-minute inactivity timeout, and computes aggregated metrics — unique visitors, average dwell time, returning visitors, peak hours, and signal strength distribution. These metrics are displayed on the device and synced to a cloud-hosted web dashboard in real time via Supabase.
+**How analytics are generated:** The Android app collects raw detections, groups them into sessions using a 10-minute inactivity timeout, and computes aggregated metrics — unique visitors, average dwell time, returning visitors, peak hours, and signal strength distribution. These are displayed on-device and synced to a web dashboard in real time via Supabase.
 
 ---
 
@@ -49,39 +49,39 @@ Footfall Analytics is a two-part system that measures how many people pass by or
 
 ## Features
 
-✅ **BLE Continuous Scanning** — Runs a low-latency BLE scan (`SCAN_MODE_LOW_LATENCY`) that detects nearby Bluetooth Low Energy devices in real time. Captures raw advertisement bytes and manufacturer-specific data.
+✅ **BLE Continuous Scanning** — Low-latency BLE scan detecting nearby Bluetooth Low Energy devices in real time.
 
-✅ **Wi-Fi Access Point Scanning** — Scans for nearby Wi-Fi access points every 30 seconds (respecting Android OS throttling). Captures BSSID, SSID, signal level, and frequency band.
+✅ **Wi-Fi Access Point Scanning** — Scans for nearby Wi-Fi access points every 30 seconds (respecting OS throttling).
 
-✅ **Background Foreground Service** — Scanning runs inside a persistent foreground service with a permanent notification (`START_STICKY`), surviving app minimisation. Declares both `location` and `connectedDevice` foreground service types for Android 14+ compliance.
+✅ **Background Foreground Service** — Persistent foreground service with a permanent notification, surviving app minimisation. Compliant with Android 14+ foreground service types.
 
-✅ **Auto-Start on Boot** — A `BroadcastReceiver` listens for `BOOT_COMPLETED` and `QUICKBOOT_POWERON` to restart the scanner service automatically after device reboot.
+✅ **Auto-Start on Boot** — Restarts the scanner automatically after device reboot via `BOOT_COMPLETED` broadcast receiver.
 
-✅ **Session-Based Visit Tracking** — A sessionization engine converts raw detections into structured visits. A session starts on first detection of a device and ends after 10 minutes of absence. Duration is tracked in milliseconds.
+✅ **Session-Based Visit Tracking** — Converts raw detections into structured visits with a 10-minute inactivity timeout.
 
-✅ **Local Room Database** — All data is persisted on-device in a SQLite database via Room with three tables: `devices`, `observations`, and `sessions`. Foreign key constraints with CASCADE DELETE ensure referential integrity.
+✅ **Local Room Database** — On-device SQLite database via Room with three tables: `devices`, `observations`, and `sessions`.
 
-✅ **Live Dashboard (Android)** — `MainActivity` displays 5 KPI cards (current devices, today's total, returning visitors, average dwell time, peak activity) and 4 live charts: hourly bar chart, last-5-minutes line chart, device category pie chart, and protocol distribution pie chart. Polls every 5 seconds.
+✅ **Live Dashboard (Android)** — KPI cards (current devices, today's total, returning visitors, average dwell time, peak activity) and 4 live charts, polling every 5 seconds.
 
-✅ **Live Devices Screen** — `NearbyDevicesActivity` shows a RecyclerView of devices seen in the last 5 minutes, each with MAC address, signal strength, estimated distance, time-since-last-seen, and an ACTIVE/IDLE/LEFT status badge. Updates every 2 seconds.
+✅ **Live Devices Screen** — RecyclerView of devices seen in the last 5 minutes with ACTIVE/IDLE/LEFT status badges, updating every 2 seconds.
 
-✅ **Device Detail Screen** — Tapping any device opens `DeviceDetailActivity` showing a full lifecycle profile: first seen, last seen, detection count, average RSSI, session count, total dwell time, and an interactive RSSI-over-time line chart.
+✅ **Device Detail Screen** — Full lifecycle profile per device: first/last seen, detection count, average RSSI, session count, dwell time, and RSSI-over-time chart.
 
-✅ **Cloud Sync to Supabase** — `SupabaseSyncManager` uploads new devices and observations to Supabase via its REST API using HTTP upserts. Sync is debounced (one upload per 10 seconds maximum) to avoid flooding the network during heavy BLE scan bursts. A high-water mark in SharedPreferences ensures no rows are re-uploaded.
+✅ **Cloud Sync to Supabase** — Debounced REST API uploads with high-water mark tracking to avoid re-uploading.
 
-✅ **Manual Sync Trigger** — A "Sync Data" button in `MainActivity` sends an Intent action to the service, triggering an immediate out-of-band sync to Supabase.
+✅ **Manual Sync Trigger** — One-tap sync button in the dashboard for out-of-band uploads.
 
-✅ **Web Dashboard** — A React + Vite + TypeScript SPA that connects to Supabase and displays real-time analytics: 4 KPI cards, a footfall line chart (last 60 minutes in 5-minute buckets), a device type distribution donut chart, an RSSI signal quality bar chart, and a live observation feed showing the latest 50 detections.
+✅ **Web Dashboard** — React + Vite + TypeScript SPA with KPI cards, footfall line chart, device type donut chart, RSSI distribution, and live observation feed.
 
-✅ **Supabase Realtime** — The web dashboard subscribes to Supabase Postgres changes via WebSocket for both INSERT on `observations` and INSERT/UPDATE on `devices`, so the dashboard updates the moment new data arrives.
+✅ **Supabase Realtime** — WebSocket subscriptions push new data to the dashboard instantly.
 
-✅ **Debug Log Screen** — `DebugLogActivity` renders a pretty-printed JSON dump of all devices, their observation counts, and their sessions directly from the Room database. Includes a "Clear Database" button.
+✅ **Debug Log Screen** — Pretty-printed JSON dump of all database records with a clear-all button.
 
-✅ **Data Export** — An "Export Data" button in `MainActivity` generates a plain-text analytics summary and invokes `ACTION_SEND` to share it via any installed messaging, email, or notes app.
+✅ **Data Export** — Share a plain-text analytics summary via any installed app.
 
-✅ **Runtime Permissions** — `MainActivity` checks and requests all required permissions at startup, branching on Android version (API 30, API 31+, API 33+) to request only the permissions relevant to that SDK level.
+✅ **Runtime Permissions** — SDK-version-aware permission requests for API 30, 31+, and 33+.
 
-✅ **Distance Estimation** — Both the Android app and the web dashboard estimate physical distance from RSSI using the standard log-distance path loss model: `d = 10 ^ ((TxPower - RSSI) / (10 × N))` with TxPower = −59 dBm and N = 2.0.
+✅ **Distance Estimation** — RSSI-based distance estimation using the log-distance path loss model.
 
 ---
 
@@ -238,66 +238,42 @@ Indexes: `device_identifier` (unique), `device_id` on observations, `device_id` 
 <details>
 <summary><strong>BluetoothScanner</strong></summary>
 
-Runs a BLE scan using `BluetoothLeScanner` with `SCAN_MODE_LOW_LATENCY` for maximum detection rate. On each scan result, it captures the device's MAC address, RSSI, raw advertisement bytes, and manufacturer-specific data (in hex). Handles both individual `onScanResult` callbacks and batched `onBatchScanResults`. Classic BT discovery is not used in the current build — only BLE.
+Runs `BluetoothLeScanner` with `SCAN_MODE_LOW_LATENCY`. Captures MAC address, RSSI, raw advertisement bytes, and manufacturer data from each scan result.
 
 </details>
 
 <details>
 <summary><strong>WiFiScanner</strong></summary>
 
-Uses `WifiManager.startScan()` with a `BroadcastReceiver` listening for `SCAN_RESULTS_AVAILABLE_ACTION`. After each result, it re-schedules the next scan 30 seconds later via a `Handler` — respecting Android 9+ OS throttling limits (maximum 4 scans per 2 minutes). Captures BSSID, SSID, signal level, and frequency for each visible access point.
+Uses `WifiManager.startScan()` with a 30-second interval via `Handler`, respecting OS throttling limits. Captures BSSID, SSID, signal level, and frequency per access point.
 
 </details>
 
 <details>
 <summary><strong>SessionizationEngine</strong></summary>
 
-The core processing pipeline. Every detection calls `processDetection(identifier, source, rssi)` on a single-threaded executor to ensure serialised DB writes. Steps:
-
-1. `getDeviceByIdentifier()` — fetch or create the device record, handling the race condition where two threads try to insert the same MAC simultaneously.
-2. `insertObservation()` — write a timestamped RSSI reading.
-3. `getLatestSessionForDevice()` — check the most recent session. If it ended more than 10 minutes ago (or doesn't exist), create a new one. Otherwise, extend the existing session's `end_time` and recalculate `duration`.
-4. `syncAsync()` — trigger a debounced Supabase upload.
+Every detection calls `processDetection()` on a single-threaded executor. Steps: fetch or create device → insert observation → update or create session → trigger debounced sync.
 
 </details>
 
 <details>
 <summary><strong>AnalyticsEngine</strong></summary>
 
-Runs on a background thread (polled every 5 seconds by `DashboardViewModel`). Computes for the current UTC day:
-
-- **Total visitors** — unique `device_id` values across all today's sessions
-- **Current nearby** — distinct devices with an observation in the last 5 minutes
-- **Returning visitors** — devices whose `first_seen` predates today
-- **Average dwell time** — mean session duration in milliseconds
-- **Peak hour** — hour 0–23 with the most session starts; reports minutes elapsed since its centre (HH:30)
-- **Hourly trend** — sessions per hour (0–23) as a `Map<Integer, Integer>`
-- **Last 5 minutes trend** — unique devices overlapping each of the last 5 one-minute buckets
-- **Source distribution** — count of Bluetooth vs Wi-Fi devices
-- **Category distribution** — Phones, Audio, Laptop, Watches, Router/AP (resolved via `DeviceCategory`)
+Polled every 5 seconds. Computes: total visitors, current nearby, returning visitors, average dwell time, peak hour, hourly trend, source distribution, and device category distribution.
 
 </details>
 
 <details>
 <summary><strong>SupabaseSyncManager</strong></summary>
 
-Uploads Room data to Supabase using its REST API with `Prefer: resolution=merge-duplicates` (upsert semantics). Two sync paths:
-
-- **Devices** — full table upsert on every sync cycle (device count stays small)
-- **Observations** — incremental upload using a high-water mark stored in `SharedPreferences` (`last_synced_obs_id`). Fetches up to 50 rows per batch in ascending `id` order. The watermark is only advanced after a confirmed 2xx HTTP response, so failures always retry.
-
-Sync is debounced via a `ScheduledExecutorService`: each call to `syncAsync()` cancels the previous pending task and reschedules it 10 seconds later, collapsing continuous BLE scan bursts into at most one network call per 10 seconds.
+Uploads data to Supabase via REST API with upsert semantics. Devices are synced as a full table upsert; observations use a high-water mark for incremental upload (up to 50 rows per batch). Sync is debounced at 10-second intervals.
 
 </details>
 
 <details>
 <summary><strong>Web Dashboard</strong></summary>
 
-A React 19 SPA built with Vite and styled with Tailwind CSS v4. Data flows from Supabase through a single `useSupabaseData` hook into `AnalyticsContext`, which exposes computed KPIs to all components via React Context.
-
-Initial load fetches the last 24 hours of observations (≤5,000 rows) and all devices in parallel. Supabase Realtime WebSocket subscriptions then push INSERT events for new observations and INSERT/UPDATE events for device changes, updating state immediately without polling.
-
-Charts are rendered with Recharts. The footfall line chart uses 5-minute aligned time buckets to correctly match observations to their bucket regardless of when the component renders.
+A React 19 SPA built with Vite and Tailwind CSS v4. Data flows from Supabase through `useSupabaseData` hook into `AnalyticsContext`. Initial load fetches 24 hours of observations and all devices in parallel; Realtime WebSocket subscriptions push live updates. Charts are rendered with Recharts.
 
 </details>
 
@@ -305,51 +281,19 @@ Charts are rendered with Recharts. The footfall line chart uses 5-minute aligned
 
 ## FootfallAnalytics SDK (`sdktest/`)
 
-A standalone Android library that wraps the core scanning, sessionization, and analytics engine so third-party apps can integrate footfall detection without building their own BLE/Wi-Fi pipeline.
-
-### SDK Module
-
-```
-sdktest/
-└── src/main/java/com/footfallanalytics/sdk/
-    ├── FootfallAnalyticsSDK.java    # Singleton entry point
-    ├── SDKConfig.java                # Builder-pattern configuration
-    ├── FootfallListener.java         # Callback interface
-    ├── model/                        # Public data models
-    │   ├── Observation.java          # Single detection (Gson-serializable)
-    │   ├── DeviceInfo.java           # Device metadata
-    │   ├── SessionInfo.java          # Visit session
-    │   └── FootfallMetrics.java      # Computed analytics
-    ├── scanner/                      # Internal — BLE + Wi-Fi scanning
-    ├── engine/                       # Internal — sessionization + metrics
-    ├── data/                         # Internal — Room database (3 entities, DAO)
-    ├── sync/                         # Internal — Supabase REST uploader
-    └── util/                         # Internal — OUI device categorisation
-```
+A standalone Android library wrapping the core scanning, sessionization, and analytics engine for third-party integration.
 
 ### Quick Start
-
-**1. Add dependency** (after publishing or using a local AAR)
 
 ```groovy
 // settings.gradle
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-        maven { url "https://jitpack.io" }
-    }
+    repositories { google(); mavenCentral(); maven { url "https://jitpack.io" } }
 }
-
 // app/build.gradle
-dependencies {
-    implementation project(':sdktest')
-    // or: implementation 'com.github.your-org:footfall-analytics-sdk:1.0.0'
-}
+dependencies { implementation project(':sdktest') }
 ```
-
-**2. Initialise in your Application or Activity**
 
 ```java
 SDKConfig config = new SDKConfig.Builder()
@@ -359,72 +303,13 @@ SDKConfig config = new SDKConfig.Builder()
 
 FootfallAnalyticsSDK sdk = FootfallAnalyticsSDK.getInstance();
 sdk.initialize(this, config);
-sdk.setListener(new FootfallListener() {
-    @Override public void onObservationDetected(Observation obs) { }
-    @Override public void onMetricsUpdated(FootfallMetrics metrics) { }
-    @Override public void onScanningStarted() { }
-    @Override public void onScanningStopped() { }
-    @Override public void onError(String msg, Throwable cause) { }
-});
-```
+sdk.setListener(new FootfallListener() { /* callbacks */ });
 
-**3. Start / stop scanning**
-
-```java
-sdk.startScanning();  // Begins BLE + Wi-Fi scanning
-// ...
-FootfallMetrics metrics = sdk.getMetrics();  // One-shot query
-// ...
+sdk.startScanning();
+FootfallMetrics metrics = sdk.getMetrics();
 sdk.stopScanning();
 sdk.shutdown();
 ```
-
-### Public API Reference
-
-| Method | Description |
-|--------|-------------|
-| `getInstance()` | Returns the singleton instance |
-| `initialize(context, config)` | Initialises Room DB, scanners, engine, and sync |
-| `setListener(listener)` | Registers a `FootfallListener` for callbacks |
-| `startScanning()` | Starts BLE + Wi-Fi scanning + 5-second metrics polling |
-| `stopScanning()` | Stops all scanners and polling |
-| `isScanning()` | Returns whether scanning is active |
-| `getMetrics()` | Synchronous query — computes `FootfallMetrics` for today |
-| `triggerSync()` | Forces an immediate upload to Supabase |
-| `shutdown()` | Stops scanning, shuts down executors, releases resources |
-
-### SDKConfig.Builder Options
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `setSupabaseUrl(url)` | `""` | Supabase project URL (omit to disable cloud sync) |
-| `setSupabaseAnonKey(key)` | `""` | Supabase anonymous key |
-| `setSessionTimeoutMs(ms)` | `600_000` (10 min) | Inactivity threshold for session expiry |
-| `setWifiPollIntervalMs(ms)` | `15_000` (15 s) | Interval for polling Wi-Fi scan cache |
-| `setClassicBtScanningEnabled(bool)` | `true` | Whether to also run classic Bluetooth discovery |
-
-### FootfallListener Callbacks
-
-| Callback | Fires |
-|----------|-------|
-| `onObservationDetected(obs)` | Each BLE / Wi-Fi / BT Classic detection (main thread) |
-| `onMetricsUpdated(metrics)` | Every 5 seconds while scanning (main thread) |
-| `onScanningStarted()` | After scanners begin |
-| `onScanningStopped()` | After scanners stop |
-| `onError(msg, cause)` | On metrics computation failure |
-
-### Required Permissions
-
-The SDK declares all necessary permissions in its own manifest. The host app must still **request runtime permissions** before calling `startScanning()`:
-
-- `BLUETOOTH_SCAN` (API 31+) / `BLUETOOTH` + `BLUETOOTH_ADMIN` (API 30)
-- `BLUETOOTH_CONNECT` (API 31+) — reads device names
-- `ACCESS_FINE_LOCATION` — required by Android for BLE scan results
-- `ACCESS_COARSE_LOCATION` — fallback
-- `ACCESS_BACKGROUND_LOCATION` — scan while app is in background
-- `ACCESS_WIFI_STATE` — read Wi-Fi scan cache
-- `CHANGE_WIFI_STATE` — trigger Wi-Fi scans
-- `INTERNET` — Supabase REST uploads
 
 ---
 
@@ -453,114 +338,37 @@ The SDK declares all necessary permissions in its own manifest. The host app mus
 
 ### Android App
 
-**Requirements**
-- Android Studio Hedgehog (2023.1.1) or newer
-- Android device running API 30 (Android 11) or higher
-- Bluetooth and Wi-Fi enabled on the device
-
-**Steps**
+**Requirements:** Android Studio Hedgehog+, device running API 30+, Bluetooth and Wi-Fi enabled.
 
 ```bash
-# Clone the repository
 git clone https://github.com/your-username/footfall-analytics.git
 cd footfall-analytics
 ```
 
-1. Open the root folder in Android Studio
-2. Let Gradle sync complete (`File → Sync Project with Gradle Files`)
-3. Open `local.properties` at the project root and add your Supabase credentials:
-
-```properties
-SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
-SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-```
-
-4. Connect your Android device with USB debugging enabled
-5. Run the app (`Shift+F10`)
+1. Open the root folder in Android Studio and let Gradle sync
+2. Add Supabase credentials to `local.properties`:
+   ```properties
+   SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
+   SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+   ```
+3. Connect your device with USB debugging and run (`Shift+F10`)
 
 ### Supabase Setup
 
 1. Create a project at [supabase.com](https://supabase.com)
-2. Open the SQL editor and run the migration:
-
-```sql
--- From supabase/migrations/00001_create_tables.sql
-CREATE TABLE devices (
-    id BIGSERIAL PRIMARY KEY,
-    device_identifier TEXT NOT NULL,
-    source TEXT NOT NULL,
-    first_seen TIMESTAMPTZ DEFAULT NOW(),
-    last_seen TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE observations (
-    id BIGSERIAL PRIMARY KEY,
-    device_id BIGINT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
-    timestamp TIMESTAMPTZ DEFAULT NOW(),
-    rssi INTEGER NOT NULL,
-    source TEXT NOT NULL
-);
-
-CREATE TABLE sessions (
-    id BIGSERIAL PRIMARY KEY,
-    device_id BIGINT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
-    start_time TIMESTAMPTZ DEFAULT NOW(),
-    end_time TIMESTAMPTZ DEFAULT NOW(),
-    duration BIGINT NOT NULL DEFAULT 0
-);
-
-CREATE INDEX idx_observations_timestamp ON observations(timestamp DESC);
-CREATE INDEX idx_observations_device_id ON observations(device_id);
-CREATE INDEX idx_sessions_device_id ON sessions(device_id);
-CREATE INDEX idx_sessions_start_time ON sessions(start_time DESC);
-CREATE INDEX idx_devices_identifier ON devices(device_identifier);
-CREATE INDEX idx_devices_last_seen ON devices(last_seen DESC);
-```
-
-3. Enable Row Level Security and add insert policies:
-
-```sql
-ALTER TABLE devices ENABLE ROW LEVEL SECURITY;
-ALTER TABLE observations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "anon_select_devices"      ON devices      FOR SELECT USING (true);
-CREATE POLICY "anon_insert_devices"      ON devices      FOR INSERT WITH CHECK (true);
-CREATE POLICY "anon_update_devices"      ON devices      FOR UPDATE USING (true);
-
-CREATE POLICY "anon_select_observations" ON observations FOR SELECT USING (true);
-CREATE POLICY "anon_insert_observations" ON observations FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "anon_select_sessions"     ON sessions     FOR SELECT USING (true);
-CREATE POLICY "anon_insert_sessions"     ON sessions     FOR INSERT WITH CHECK (true);
-CREATE POLICY "anon_update_sessions"     ON sessions     FOR UPDATE USING (true);
-```
-
-4. Enable Realtime for all three tables:
-   - Go to **Database → Replication**
-   - Toggle on `devices`, `observations`, and `sessions`
-
+2. Run the migration from `supabase/migrations/00001_create_tables.sql` in the SQL editor
+3. Enable Row Level Security and add anonymous insert/select policies for all three tables
+4. Enable Realtime for `devices`, `observations`, and `sessions` under **Database → Replication**
 5. Copy your **Project URL** and **anon public key** from **Project Settings → API**
 
 ### Web Dashboard
 
 ```bash
 cd billboard-dashboard
-
-# Create environment file
-cp .env.local.example .env.local
-# Edit .env.local and add:
-# VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
-# VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-
-# Install dependencies
+cp .env.local.example .env.local   # Add your Supabase credentials
 npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
+npm run dev                        # Development
+npm run build                      # Production
 ```
 
 ---
@@ -590,32 +398,17 @@ npm run build
 
 ## Challenges
 
-**Android Bluetooth restrictions** — Android 12+ split Bluetooth permissions into granular `BLUETOOTH_SCAN` and `BLUETOOTH_CONNECT` rights. The app handles three separate permission sets depending on SDK version to remain compatible with API 30–36.
+**Android Bluetooth restrictions** — Android 12+ split Bluetooth permissions. The app handles three separate permission sets depending on SDK version to remain compatible with API 30–36.
 
-**Wi-Fi scan throttling** — Since Android 9, the OS limits foreground apps to 4 Wi-Fi scans per 2 minutes, and background apps to 1 per 30 minutes. The 30-second scan interval was chosen to stay safely within the foreground limit without triggering suppression.
+**Wi-Fi scan throttling** — Android limits apps to 4 Wi-Fi scans per 2 minutes. The 30-second interval stays safely within this limit.
 
-**MAC address randomisation** — Modern Android, iOS, and Windows devices randomise their Bluetooth and Wi-Fi MAC addresses for privacy. Each randomisation cycle makes a device appear as a new, unknown device. This is an OS-level constraint with no workaround in passive scanning and is the primary source of over-counting in unique visitor metrics.
+**MAC address randomisation** — Modern devices randomise their MAC addresses for privacy, making a device appear as new after each cycle. This is an OS-level constraint and the primary source of over-counting in unique visitor metrics.
 
-**Background execution limits** — Android's battery optimisation kills services that consume resources in the background. The foreground service with a persistent notification (`START_STICKY`) is the correct pattern, but some OEM ROM variants (particularly Xiaomi/MIUI and Samsung One UI) apply aggressive additional restrictions that may require manual battery whitelist exemption by the user.
+**Background execution limits** — Android's battery optimisation kills background services. A foreground service with `START_STICKY` is used, but some OEM ROMs (Xiaomi/MIUI, Samsung One UI) may require manual battery whitelist exemption.
 
-**Thread-safe date formatting** — `SimpleDateFormat` is not thread-safe. Multiple concurrent scanner callbacks and polling threads all needed to format and parse ISO-8601 timestamps. This was resolved by using `ThreadLocal<SimpleDateFormat>` in all engine and ViewModel classes.
+**Thread-safe date formatting** — Resolved by using `ThreadLocal<SimpleDateFormat>` across all engine and ViewModel classes.
 
-**Sessionization race condition** — The BLE scanner fires callbacks rapidly. If two callbacks for the same MAC address arrive before the first `processDetection()` call completes its database insert, both paths attempt to insert a new device row. This is handled by using `OnConflictStrategy.IGNORE` on the insert and re-fetching the existing record when the insert returns -1.
-
----
-
-## Future Improvements
-
-- **BT Classic device class detection** — Replace the hash-based category assignment with the real `BluetoothClass` device major class broadcast by Classic Bluetooth devices
-- **Paginated sync backlog** — After each successful batch upload, immediately queue the next batch until all pending rows are sent
-- **Dwell time distribution** — Show visitor breakdown by duration buckets (< 1 min, 1–5 min, 5–15 min, > 15 min) instead of only the mean
-- **7×24 hour-of-week heatmap** — Average footfall per hour per day of week for pattern analysis
-- **Multi-location support** — Add a `location_id` to devices and observations so one dashboard can compare footfall across multiple billboards
-- **Battery optimisation prompt** — Guide users to whitelist the app from battery optimisation via `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`
-- **Credential UI** — Add a settings screen in the Android app to configure Supabase credentials at runtime
-- **RecyclerView DiffUtil** — Replace `notifyDataSetChanged()` in `NearbyDeviceAdapter` with `DiffUtil.ItemCallback` for smooth, animated list updates
-- **CSV export** — Replace the plain-text share export with a proper CSV written to the Downloads folder via `MediaStore`
-- **Dashboard date range picker** — Allow the web dashboard to query historical data beyond the default 24-hour window
+**Sessionization race condition** — Rapid BLE callbacks for the same MAC could race on device insertion. Handled via `OnConflictStrategy.IGNORE` with a re-fetch when insert returns -1.
 
 ---
 
@@ -623,14 +416,7 @@ npm run build
 
 **Vaibhav**
 
-A computer science student passionate about building systems that bridge the physical and digital worlds. This project was built end-to-end as an exploration of Android background services, Bluetooth/Wi-Fi scanning APIs, real-time cloud sync, and full-stack analytics dashboards.
-
-- Designed and implemented the complete Android scanning pipeline from raw RF packets to sessionized visitor metrics
-- Built a debounced, fault-tolerant cloud sync layer using Supabase's REST API
-- Developed a real-time web dashboard with live WebSocket data feeds and interactive Recharts visualisations
-- Resolved production-grade issues: thread safety, session race conditions, OS scan throttling, and service lifecycle management
-
-> This project is suitable for demonstration in internship applications, portfolio reviews, and as a reference implementation for Android background service architecture with cloud integration.
+A computer science student passionate about building systems that bridge the physical and digital worlds. This project was built end-to-end exploring Android background services, Bluetooth/Wi-Fi scanning, real-time cloud sync, and full-stack analytics.
 
 ---
 
