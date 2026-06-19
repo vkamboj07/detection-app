@@ -1,5 +1,7 @@
 package com.footfallanalytics.sdk.engine;
 
+import androidx.annotation.RestrictTo;
+
 import com.footfallanalytics.sdk.data.AnalyticsDao;
 import com.footfallanalytics.sdk.data.DeviceEntity;
 import com.footfallanalytics.sdk.data.SessionEntity;
@@ -19,10 +21,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 public class AnalyticsEngine {
     private final AnalyticsDao dao;
 
-    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<>() {
         @Override
         protected SimpleDateFormat initialValue() {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
@@ -53,9 +56,9 @@ public class AnalyticsEngine {
         cal.set(Calendar.SECOND, 59);
         long endOfDayMs = cal.getTimeInMillis();
 
-        String startOfDayStr = DATE_FORMAT.get().format(new Date(startOfDayMs));
-        String endOfDayStr = DATE_FORMAT.get().format(new Date(endOfDayMs));
-        String fiveMinsAgoStr = DATE_FORMAT.get().format(new Date(fiveMinsAgo));
+        String startOfDayStr = formatTimestamp(new Date(startOfDayMs));
+        String endOfDayStr = formatTimestamp(new Date(endOfDayMs));
+        String fiveMinsAgoStr = formatTimestamp(new Date(fiveMinsAgo));
 
         List<SessionEntity> todaySessions = dao.getSessionsForDateRange(startOfDayStr, endOfDayStr);
         List<DeviceEntity> allDevices = dao.getAllDevices();
@@ -169,9 +172,16 @@ public class AnalyticsEngine {
         return metrics;
     }
 
+    private String formatTimestamp(Date date) {
+        SimpleDateFormat sdf = DATE_FORMAT.get();
+        return sdf != null ? sdf.format(date) : date.toString();
+    }
+
     private int getHourFromTimestamp(String timestamp) {
         try {
-            Date date = DATE_FORMAT.get().parse(timestamp);
+            SimpleDateFormat sdf = DATE_FORMAT.get();
+            if (sdf == null) return 0;
+            Date date = sdf.parse(timestamp);
             if (date != null) {
                 Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
                 cal.setTime(date);
@@ -184,7 +194,9 @@ public class AnalyticsEngine {
     private long parseTimestamp(String timestamp) {
         if (timestamp == null) return 0;
         try {
-            Date date = DATE_FORMAT.get().parse(timestamp);
+            SimpleDateFormat sdf = DATE_FORMAT.get();
+            if (sdf == null) return 0;
+            Date date = sdf.parse(timestamp);
             return date != null ? date.getTime() : 0;
         } catch (ParseException e) { return 0; }
     }

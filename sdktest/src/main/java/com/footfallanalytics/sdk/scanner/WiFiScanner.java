@@ -2,6 +2,8 @@ package com.footfallanalytics.sdk.scanner;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+
+import androidx.annotation.RestrictTo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
@@ -18,6 +20,7 @@ import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 public class WiFiScanner {
     private static final String TAG = "FSDK_WiFiScanner";
 
@@ -25,7 +28,7 @@ public class WiFiScanner {
     private final ObservationCallback callback;
     private final long pollIntervalMs;
 
-    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<>() {
         @Override
         protected SimpleDateFormat initialValue() {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
@@ -96,6 +99,7 @@ public class WiFiScanner {
     }
 
     private String getCurrentTimestamp() {
-        return DATE_FORMAT.get().format(new Date());
+        SimpleDateFormat sdf = DATE_FORMAT.get();
+        return sdf != null ? sdf.format(new Date()) : new Date().toString();
     }
 }

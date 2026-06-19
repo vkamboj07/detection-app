@@ -1,5 +1,6 @@
 package com.footfallanalytics.sdk.data;
 
+import androidx.annotation.RestrictTo;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
@@ -8,6 +9,8 @@ import androidx.room.Update;
 
 import java.util.List;
 
+@RestrictTo(RestrictTo.Scope.LIBRARY)
+@SuppressWarnings("unused")
 @Dao
 public interface AnalyticsDao {
 

@@ -31,7 +31,7 @@ public class SDKConfig {
         private String supabaseAnonKey = "";
         private long sessionTimeoutMs = 10 * 60 * 1000;
         private long wifiPollIntervalMs = 15_000;
-        private boolean enableClassicBtScanning = true;
+        private boolean enableClassicBtScanning = false;
 
         public Builder setSupabaseUrl(String url) {
             this.supabaseUrl = url;

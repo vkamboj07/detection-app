@@ -2,6 +2,7 @@ package com.footfallanalytics.sdk.model;
 
 import java.util.Map;
 
+@SuppressWarnings("unused")
 public class FootfallMetrics {
     private int totalVisitorsToday;
     private int currentNearbyDevices;

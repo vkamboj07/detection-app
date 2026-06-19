@@ -3,12 +3,12 @@ plugins {
 }
 
 android {
-    namespace 'com.company.analyticssdk'
-    compileSdk 36
+    namespace 'com.footfallanalytics.sdk'
+    compileSdk = 37
 
     defaultConfig {
         minSdk 21
-        targetSdk 36
+        targetSdk 37
 
         consumerProguardFiles "consumer-rules.pro"
     }
@@ -23,22 +23,14 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
-
-    buildFeatures {
-        viewBinding true
-    }
 }
 
 dependencies {
-
-    implementation 'androidx.appcompat:appcompat:1.7.0'
-    implementation 'com.google.android.material:material:1.12.0'
-
-    implementation "androidx.room:room-runtime:2.7.1"
-    annotationProcessor "androidx.room:room-compiler:2.7.1"
+    implementation "androidx.room:room-runtime:2.8.4"
+    annotationProcessor "androidx.room:room-compiler:2.8.4"
 
     // Gson for JSON serialization
-    implementation 'com.google.code.gson:gson:2.11.0'
+    implementation 'com.google.code.gson:gson:2.14.0'
 
     // Unit testing
     testImplementation 'junit:junit:4.13.2'

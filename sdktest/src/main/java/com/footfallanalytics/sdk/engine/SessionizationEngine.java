@@ -2,6 +2,8 @@ package com.footfallanalytics.sdk.engine;
 
 import android.util.Log;
 
+import androidx.annotation.RestrictTo;
+
 import com.footfallanalytics.sdk.data.AnalyticsDao;
 import com.footfallanalytics.sdk.data.DeviceEntity;
 import com.footfallanalytics.sdk.data.ObservationEntity;
@@ -18,6 +20,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 public class SessionizationEngine {
     private static final String TAG = "FSDK_SessionEngine";
     private static final int MAX_QUEUE_DEPTH = 200;
@@ -32,7 +35,7 @@ public class SessionizationEngine {
             new LinkedBlockingQueue<>(MAX_QUEUE_DEPTH),
             (r, exec) -> Log.w(TAG, "Detection dropped - queue full"));
 
-    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<>() {
         @Override
         protected SimpleDateFormat initialValue() {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
@@ -125,19 +128,27 @@ public class SessionizationEngine {
 
     public void shutdown() {
         executor.shutdown();
-        try { executor.awaitTermination(2, TimeUnit.SECONDS); }
-        catch (InterruptedException e) { executor.shutdownNow(); }
+        try {
+            boolean terminated = executor.awaitTermination(2, TimeUnit.SECONDS);
+            if (!terminated) executor.shutdownNow();
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
         syncManager.shutdown();
     }
 
     private String getCurrentTimestamp() {
-        return DATE_FORMAT.get().format(new Date());
+        SimpleDateFormat sdf = DATE_FORMAT.get();
+        return sdf != null ? sdf.format(new Date()) : new java.util.Date().toString();
     }
 
     private long parseTimestamp(String timestamp) {
         if (timestamp == null) return 0;
+        SimpleDateFormat sdf = DATE_FORMAT.get();
+        if (sdf == null) return 0;
         try {
-            Date date = DATE_FORMAT.get().parse(timestamp);
+            Date date = sdf.parse(timestamp);
             return date != null ? date.getTime() : 0;
         } catch (ParseException e) { return 0; }
     }

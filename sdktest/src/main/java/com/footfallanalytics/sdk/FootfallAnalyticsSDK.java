@@ -10,7 +10,6 @@ import com.footfallanalytics.sdk.data.AppDatabase;
 import com.footfallanalytics.sdk.engine.AnalyticsEngine;
 import com.footfallanalytics.sdk.engine.SessionizationEngine;
 import com.footfallanalytics.sdk.model.FootfallMetrics;
-import com.footfallanalytics.sdk.model.Observation;
 import com.footfallanalytics.sdk.scanner.BluetoothScanner;
 import com.footfallanalytics.sdk.scanner.WiFiScanner;
 import com.footfallanalytics.sdk.sync.SupabaseSyncManager;
@@ -20,6 +19,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings({"unused", "FieldCanBeLocal"})
 public class FootfallAnalyticsSDK {
 
     private static final String TAG = "FootfallAnalyticsSDK";

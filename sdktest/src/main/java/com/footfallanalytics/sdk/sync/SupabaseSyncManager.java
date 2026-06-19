@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import androidx.annotation.RestrictTo;
+
 import com.footfallanalytics.sdk.data.AnalyticsDao;
 import com.footfallanalytics.sdk.data.DeviceEntity;
 import com.footfallanalytics.sdk.data.ObservationEntity;
@@ -13,9 +15,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -30,6 +33,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 public class SupabaseSyncManager {
 
     private static final String TAG = "FSDK_SyncManager";
@@ -59,7 +63,7 @@ public class SupabaseSyncManager {
     }
 
     public synchronized void syncAsync() {
-        if (!isConfigured()) return;
+        if (isNotConfigured()) return;
         long now = System.currentTimeMillis();
         if (pendingSync == null || pendingSync.isDone()) {
             burstStartMs = now;
@@ -79,7 +83,7 @@ public class SupabaseSyncManager {
     }
 
     public synchronized void syncImmediately() {
-        if (!isConfigured()) return;
+        if (isNotConfigured()) return;
         if (pendingSync != null && !pendingSync.isDone()) {
             pendingSync.cancel(false);
         }
@@ -101,9 +105,9 @@ public class SupabaseSyncManager {
         scheduler.shutdownNow();
     }
 
-    private boolean isConfigured() {
-        return supabaseUrl != null && !supabaseUrl.isEmpty()
-                && supabaseAnonKey != null && !supabaseAnonKey.isEmpty();
+    private boolean isNotConfigured() {
+        return supabaseUrl == null || supabaseUrl.isEmpty()
+                || supabaseAnonKey == null || supabaseAnonKey.isEmpty();
     }
 
     private void performSync() {
@@ -216,13 +220,15 @@ public class SupabaseSyncManager {
     private String readErrorBody(HttpURLConnection conn) {
         try (InputStream es = conn.getErrorStream()) {
             if (es == null) return "";
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            byte[] chunk = new byte[4096];
-            int bytesRead;
-            while ((bytesRead = es.read(chunk, 0, chunk.length)) != -1) {
-                buffer.write(chunk, 0, bytesRead);
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(es, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
             }
-            return buffer.toString("UTF-8");
+            return sb.toString();
         } catch (IOException e) {
             return "(could not read error body)";
         }

@@ -3,7 +3,9 @@ package com.footfallanalytics.sdk.model;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
+@SuppressWarnings("unused")
 public class Observation {
+    private static final Gson GSON = new Gson();
     @SerializedName("source")
     private String source;
 
@@ -66,6 +68,6 @@ public class Observation {
     public void setFrequency(int frequency) { this.frequency = frequency; }
 
     public String toJson() {
-        return new Gson().toJson(this);
+        return GSON.toJson(this);
     }
 }

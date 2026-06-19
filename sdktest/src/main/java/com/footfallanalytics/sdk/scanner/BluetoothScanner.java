@@ -2,6 +2,8 @@ package com.footfallanalytics.sdk.scanner;
 
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
+
+import androidx.annotation.RestrictTo;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -25,6 +27,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 public class BluetoothScanner {
     private static final String TAG = "FSDK_BluetoothScanner";
     private static final long DEDUP_WINDOW_MS = 2000;
@@ -38,7 +41,7 @@ public class BluetoothScanner {
     private volatile boolean isScanning = false;
     private final Map<String, Long> recentlyProcessed = new ConcurrentHashMap<>();
 
-    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<>() {
         @Override
         protected SimpleDateFormat initialValue() {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
@@ -70,7 +73,7 @@ public class BluetoothScanner {
             if (BluetoothDevice.ACTION_FOUND.equals(intent.getAction())) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 int rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE);
-                if (device != null && !isDuplicate(device.getAddress())) {
+                if (device != null && isNotDuplicate(device.getAddress())) {
                     try {
                         int type = device.getType();
                         if (type == BluetoothDevice.DEVICE_TYPE_LE) return;
@@ -95,7 +98,7 @@ public class BluetoothScanner {
         if (enableClassicScanning) {
             IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                context.registerReceiver(classicBtReceiver, filter, Context.RECEIVER_EXPORTED);
+                context.registerReceiver(classicBtReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
             } else {
                 context.registerReceiver(classicBtReceiver, filter);
             }
@@ -143,10 +146,11 @@ public class BluetoothScanner {
     }
 
     private String getCurrentTimestamp() {
-        return DATE_FORMAT.get().format(new Date());
+        SimpleDateFormat sdf = DATE_FORMAT.get();
+        return sdf != null ? sdf.format(new Date()) : new Date().toString();
     }
 
-    private boolean isDuplicate(String mac) {
+    private boolean isNotDuplicate(String mac) {
         long now = System.currentTimeMillis();
         Long prev = recentlyProcessed.put(mac, now);
         boolean dup = prev != null && (now - prev) < DEDUP_WINDOW_MS;
@@ -158,7 +162,7 @@ public class BluetoothScanner {
                 }
             }
         }
-        return dup;
+        return !dup;
     }
 
     private final ScanCallback leScanCallback = new ScanCallback() {
@@ -169,7 +173,7 @@ public class BluetoothScanner {
             int rssi = result.getRssi();
             ScanRecord record = result.getScanRecord();
 
-            if (device != null && !isDuplicate(device.getAddress())) {
+            if (device != null && isNotDuplicate(device.getAddress())) {
                 Observation obs = new Observation("BLE", device.getAddress(), rssi, getCurrentTimestamp());
                 if (record != null) {
                     obs.setDeviceName(record.getDeviceName());

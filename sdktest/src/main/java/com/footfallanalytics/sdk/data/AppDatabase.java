@@ -2,10 +2,12 @@ package com.footfallanalytics.sdk.data;
 
 import android.content.Context;
 
+import androidx.annotation.RestrictTo;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 @Database(entities = {DeviceEntity.class, ObservationEntity.class, SessionEntity.class}, version = 1, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
@@ -21,7 +23,7 @@ public abstract class AppDatabase extends RoomDatabase {
                                     context.getApplicationContext(),
                                     AppDatabase.class,
                                     "footfall_analytics_sdk_db")
-                            .fallbackToDestructiveMigration()
+                            .fallbackToDestructiveMigration(true)
                             .build();
                 }
             }

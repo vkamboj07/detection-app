@@ -1,10 +1,12 @@
 package com.footfallanalytics.sdk.data;
 
+import androidx.annotation.RestrictTo;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 @Entity(
     tableName = "devices",
     indices = {@Index(value = {"device_identifier"}, unique = true)}

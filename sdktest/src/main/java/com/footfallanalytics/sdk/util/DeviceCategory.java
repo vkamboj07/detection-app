@@ -1,7 +1,10 @@
 package com.footfallanalytics.sdk.util;
 
+import androidx.annotation.RestrictTo;
+
 import java.util.Locale;
 
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 public final class DeviceCategory {
 
     private DeviceCategory() {}

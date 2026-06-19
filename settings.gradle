@@ -15,4 +15,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "BillboardAnalytics"
 include ':app'
-include ':sdktest'
+include ':sdk'
+project(':sdk').projectDir = file('sdktest')
