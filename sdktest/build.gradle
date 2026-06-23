@@ -7,7 +7,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        minSdk 21
+        minSdk 23
         targetSdk 37
 
         consumerProguardFiles "consumer-rules.pro"
@@ -26,11 +26,11 @@ android {
 }
 
 dependencies {
-    implementation "androidx.room:room-runtime:2.8.4"
+    api "androidx.room:room-runtime:2.8.4"
     annotationProcessor "androidx.room:room-compiler:2.8.4"
 
     // Gson for JSON serialization
-    implementation 'com.google.code.gson:gson:2.14.0'
+    api 'com.google.code.gson:gson:2.14.0'
 
     // Unit testing
     testImplementation 'junit:junit:4.13.2'

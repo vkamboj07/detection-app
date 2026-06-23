@@ -76,3 +76,6 @@ vcs.xml
 node_modules/
 billboard-dashboard/dist/
 billboard-dashboard/dist-ssr/
+
+# Supabase CLI temp files
+supabase/.temp/

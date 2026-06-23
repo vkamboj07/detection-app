@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import com.footfallanalytics.sdk.api.FootfallAnalyticsApi;
 import com.footfallanalytics.sdk.data.AnalyticsDao;
 import com.footfallanalytics.sdk.data.AppDatabase;
 import com.footfallanalytics.sdk.engine.AnalyticsEngine;
@@ -14,6 +15,9 @@ import com.footfallanalytics.sdk.scanner.BluetoothScanner;
 import com.footfallanalytics.sdk.scanner.WiFiScanner;
 import com.footfallanalytics.sdk.sync.SupabaseSyncManager;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -34,6 +38,7 @@ public class FootfallAnalyticsSDK {
     private AnalyticsEngine analyticsEngine;
     private SessionizationEngine sessionEngine;
     private SupabaseSyncManager syncManager;
+    private FootfallAnalyticsApi apiClient;
     private BluetoothScanner bluetoothScanner;
     private WiFiScanner wifiScanner;
 
@@ -72,6 +77,11 @@ public class FootfallAnalyticsSDK {
 
         this.syncManager = new SupabaseSyncManager(
                 appContext, dao,
+                sdkConfig.getSupabaseUrl(),
+                sdkConfig.getSupabaseAnonKey()
+        );
+
+        this.apiClient = new FootfallAnalyticsApi(
                 sdkConfig.getSupabaseUrl(),
                 sdkConfig.getSupabaseAnonKey()
         );
@@ -162,6 +172,29 @@ public class FootfallAnalyticsSDK {
         return analyticsEngine.generateMetricsForToday();
     }
 
+    public int getUniqueDeviceCount24h() {
+        checkInitialized();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+        String cutoff = sdf.format(new Date(System.currentTimeMillis() - 86_400_000L));
+        int count = dao.getUniqueDevicesCountSince(cutoff);
+        dao.deleteObservationsOlderThan(cutoff);
+        dao.deleteSessionsOlderThan(cutoff);
+        dao.deleteOrphanedDevices();
+        Log.i(TAG, "Rolling 24h cleanup complete. Unique devices: " + count);
+        return count;
+    }
+
+    public void getUniqueDeviceCount24hFromCloud(final FootfallAnalyticsApi.ApiCallback<Integer> callback) {
+        checkInitialized();
+        if (apiClient != null) {
+            apiClient.getUniqueDeviceCount24h(callback);
+        } else {
+            if (callback != null) {
+                callback.onError(new IllegalStateException("API client not available"));
+            }
+        }
+    }
+
     public void triggerSync() {
         checkInitialized();
         if (syncManager != null) {
@@ -174,6 +207,7 @@ public class FootfallAnalyticsSDK {
         stopScanning();
         stopMetricsPolling();
         if (sessionEngine != null) sessionEngine.shutdown();
+        if (apiClient != null) apiClient.shutdown();
         if (metricsScheduler != null) metricsScheduler.shutdownNow();
         instance = null;
         initialized = false;

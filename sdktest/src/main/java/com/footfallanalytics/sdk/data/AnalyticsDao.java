@@ -69,4 +69,16 @@ public interface AnalyticsDao {
            "WHERE d.last_seen >= :sinceTimestamp " +
            "GROUP BY o2.device_id)")
     List<ObservationEntity> getLatestObservationPerDeviceSince(String sinceTimestamp);
+
+    @Query("SELECT COUNT(DISTINCT device_id) FROM observations WHERE timestamp >= :sinceTimestamp")
+    int getUniqueDevicesCountSince(String sinceTimestamp);
+
+    @Query("DELETE FROM observations WHERE timestamp < :beforeTimestamp")
+    int deleteObservationsOlderThan(String beforeTimestamp);
+
+    @Query("DELETE FROM sessions WHERE end_time < :beforeTimestamp")
+    int deleteSessionsOlderThan(String beforeTimestamp);
+
+    @Query("DELETE FROM devices WHERE id NOT IN (SELECT DISTINCT device_id FROM observations)")
+    int deleteOrphanedDevices();
 }
