@@ -9,6 +9,9 @@ import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.example.billboardanalytics.BuildConfig;
+import com.footfallanalytics.sdk.service.ScannerService;
+
 public class BootStartWorker extends Worker {
 
     private static final String TAG = "BootStartWorker";
@@ -20,9 +23,6 @@ public class BootStartWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        // Only restart the service if the user had tracking active before the reboot.
-        // Without this check the scanner would auto-start on every boot even if the
-        // user had explicitly stopped it.
         SharedPreferences prefs = getApplicationContext()
                 .getSharedPreferences("tracker_prefs", Context.MODE_PRIVATE);
         boolean wasTracking = prefs.getBoolean("is_tracking", false);
@@ -34,6 +34,9 @@ public class BootStartWorker extends Worker {
 
         Log.d(TAG, "Tracking was active before reboot — restarting ScannerService.");
         Intent serviceIntent = new Intent(getApplicationContext(), ScannerService.class);
+        serviceIntent.setAction(ScannerService.ACTION_START);
+        serviceIntent.putExtra(ScannerService.EXTRA_SUPABASE_URL, BuildConfig.SUPABASE_URL);
+        serviceIntent.putExtra(ScannerService.EXTRA_SUPABASE_KEY, BuildConfig.SUPABASE_ANON_KEY);
         try {
             getApplicationContext().startForegroundService(serviceIntent);
             return Result.success();

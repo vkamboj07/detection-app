@@ -8,12 +8,12 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.example.billboardanalytics.data.AnalyticsDao;
-import com.example.billboardanalytics.data.AppDatabase;
-import com.example.billboardanalytics.data.DeviceEntity;
-import com.example.billboardanalytics.data.ObservationEntity;
-import com.example.billboardanalytics.data.SessionEntity;
-import com.example.billboardanalytics.util.DeviceCategory;
+import com.footfallanalytics.sdk.data.AnalyticsDao;
+import com.footfallanalytics.sdk.data.AppDatabase;
+import com.footfallanalytics.sdk.data.DeviceEntity;
+import com.footfallanalytics.sdk.data.ObservationEntity;
+import com.footfallanalytics.sdk.data.SessionEntity;
+import com.footfallanalytics.sdk.util.DeviceCategory;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;

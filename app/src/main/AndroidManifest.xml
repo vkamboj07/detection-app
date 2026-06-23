@@ -55,12 +55,6 @@
         
         <activity android:name=".ui.DebugLogActivity" android:exported="false" />
         
-        <!-- Foreground Service -->
-        <service
-            android:name=".service.ScannerService"
-            android:exported="false"
-            android:foregroundServiceType="location|connectedDevice" />
-
         <!-- Auto Restart on Boot -->
         <receiver
             android:name=".service.BootReceiver"

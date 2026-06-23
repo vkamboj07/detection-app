@@ -1,19 +1,27 @@
 package com.footfallanalytics.sdk;
 
 import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import com.footfallanalytics.sdk.api.FootfallAnalyticsApi;
 import com.footfallanalytics.sdk.data.AnalyticsDao;
 import com.footfallanalytics.sdk.data.AppDatabase;
 import com.footfallanalytics.sdk.engine.AnalyticsEngine;
 import com.footfallanalytics.sdk.engine.SessionizationEngine;
 import com.footfallanalytics.sdk.model.FootfallMetrics;
+import com.footfallanalytics.sdk.model.Observation;
 import com.footfallanalytics.sdk.scanner.BluetoothScanner;
 import com.footfallanalytics.sdk.scanner.WiFiScanner;
+import com.footfallanalytics.sdk.service.ScannerService;
 import com.footfallanalytics.sdk.sync.SupabaseSyncManager;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -34,6 +42,7 @@ public class FootfallAnalyticsSDK {
     private AnalyticsEngine analyticsEngine;
     private SessionizationEngine sessionEngine;
     private SupabaseSyncManager syncManager;
+    private FootfallAnalyticsApi apiClient;
     private BluetoothScanner bluetoothScanner;
     private WiFiScanner wifiScanner;
 
@@ -72,6 +81,11 @@ public class FootfallAnalyticsSDK {
 
         this.syncManager = new SupabaseSyncManager(
                 appContext, dao,
+                sdkConfig.getSupabaseUrl(),
+                sdkConfig.getSupabaseAnonKey()
+        );
+
+        this.apiClient = new FootfallAnalyticsApi(
                 sdkConfig.getSupabaseUrl(),
                 sdkConfig.getSupabaseAnonKey()
         );
@@ -157,9 +171,56 @@ public class FootfallAnalyticsSDK {
         return scanning;
     }
 
+    public void startBackgroundService() {
+        checkInitialized();
+        Intent intent = new Intent(appContext, ScannerService.class);
+        intent.setAction(ScannerService.ACTION_START);
+        intent.putExtra(ScannerService.EXTRA_SUPABASE_URL, config.getSupabaseUrl());
+        intent.putExtra(ScannerService.EXTRA_SUPABASE_KEY, config.getSupabaseAnonKey());
+        intent.putExtra(ScannerService.EXTRA_SESSION_TIMEOUT, config.getSessionTimeoutMs());
+        intent.putExtra(ScannerService.EXTRA_WIFI_POLL_INTERVAL, config.getWifiPollIntervalMs());
+        intent.putExtra(ScannerService.EXTRA_CLASSIC_BT, config.isClassicBtScanningEnabled());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            appContext.startForegroundService(intent);
+        } else {
+            appContext.startService(intent);
+        }
+        Log.i(TAG, "Background service requested");
+    }
+
+    public void stopBackgroundService() {
+        Intent intent = new Intent(appContext, ScannerService.class);
+        intent.setAction(ScannerService.ACTION_STOP);
+        appContext.startService(intent);
+        Log.i(TAG, "Background service stop requested");
+    }
+
     public FootfallMetrics getMetrics() {
         checkInitialized();
         return analyticsEngine.generateMetricsForToday();
+    }
+
+    public int getUniqueDeviceCount24h() {
+        checkInitialized();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+        String cutoff = sdf.format(new Date(System.currentTimeMillis() - 86_400_000L));
+        int count = dao.getUniqueDevicesCountSince(cutoff);
+        dao.deleteObservationsOlderThan(cutoff);
+        dao.deleteSessionsOlderThan(cutoff);
+        dao.deleteOrphanedDevices();
+        Log.i(TAG, "Rolling 24h cleanup complete. Unique devices: " + count);
+        return count;
+    }
+
+    public void getUniqueDeviceCount24hFromCloud(final FootfallAnalyticsApi.ApiCallback<Integer> callback) {
+        checkInitialized();
+        if (apiClient != null) {
+            apiClient.getUniqueDeviceCount24h(callback);
+        } else {
+            if (callback != null) {
+                callback.onError(new IllegalStateException("API client not available"));
+            }
+        }
     }
 
     public void triggerSync() {
@@ -174,6 +235,7 @@ public class FootfallAnalyticsSDK {
         stopScanning();
         stopMetricsPolling();
         if (sessionEngine != null) sessionEngine.shutdown();
+        if (apiClient != null) apiClient.shutdown();
         if (metricsScheduler != null) metricsScheduler.shutdownNow();
         instance = null;
         initialized = false;

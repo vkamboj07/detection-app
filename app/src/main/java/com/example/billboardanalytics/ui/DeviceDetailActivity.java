@@ -9,7 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.billboardanalytics.R;
-import com.example.billboardanalytics.data.ObservationEntity;
+import com.footfallanalytics.sdk.data.ObservationEntity;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.Entry;

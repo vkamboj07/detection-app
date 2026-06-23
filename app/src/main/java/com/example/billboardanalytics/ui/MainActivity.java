@@ -10,9 +10,12 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.example.billboardanalytics.BuildConfig;
 import com.example.billboardanalytics.R;
-import com.example.billboardanalytics.data.AppDatabase;
-import com.example.billboardanalytics.engine.FootfallMetrics;
+import com.footfallanalytics.sdk.data.AppDatabase;
+import com.footfallanalytics.sdk.model.FootfallMetrics;
+import com.footfallanalytics.sdk.FootfallAnalyticsSDK;
+import com.footfallanalytics.sdk.SDKConfig;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.charts.PieChart;
@@ -64,6 +67,13 @@ public class MainActivity extends AppCompatActivity {
         // Restore tracking state from prefs so button reflects reality after process restart
         isTracking = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 .getBoolean(KEY_IS_TRACKING, false);
+
+        // Initialize the SDK
+        SDKConfig config = new SDKConfig.Builder()
+                .setSupabaseUrl(BuildConfig.SUPABASE_URL)
+                .setSupabaseAnonKey(BuildConfig.SUPABASE_ANON_KEY)
+                .build();
+        FootfallAnalyticsSDK.getInstance().initialize(this, config);
 
         tvCurrentDevices = findViewById(R.id.tvCurrentDevices);
         tvTotalVisitors = findViewById(R.id.tvTotalVisitors);
@@ -210,8 +220,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startScannerService() {
-        Intent serviceIntent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
-        startForegroundService(serviceIntent);
+        FootfallAnalyticsSDK.getInstance().startBackgroundService();
         isTracking = true;
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
                 .putBoolean(KEY_IS_TRACKING, true).apply();
@@ -219,11 +228,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void stopScannerService() {
-        // Use stopService() — NOT startForegroundService() — to stop the service.
-        // Sending ACTION_STOP via startForegroundService re-creates the service if it
-        // was already killed by the OS, which is the opposite of what we want here.
-        Intent serviceIntent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
-        stopService(serviceIntent);
+        FootfallAnalyticsSDK.getInstance().stopBackgroundService();
         isTracking = false;
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
                 .putBoolean(KEY_IS_TRACKING, false).apply();
@@ -308,19 +313,19 @@ public class MainActivity extends AppCompatActivity {
     private void updateUI(FootfallMetrics metrics) {
         if (metrics == null) return;
 
-        tvCurrentDevices.setText(String.valueOf(metrics.currentNearbyDevices));
-        tvTotalVisitors.setText(String.valueOf(metrics.totalVisitorsToday));
-        tvReturningVisitors.setText(String.valueOf(metrics.returningVisitors));
+        tvCurrentDevices.setText(String.valueOf(metrics.getCurrentNearbyDevices()));
+        tvTotalVisitors.setText(String.valueOf(metrics.getTotalVisitorsToday()));
+        tvReturningVisitors.setText(String.valueOf(metrics.getReturningVisitors()));
 
-        long minutes = metrics.averageDwellTimeMs / (1000 * 60);
+        long minutes = metrics.getAverageDwellTimeMs() / (1000 * 60);
         tvAvgDwellTime.setText(minutes + "m");
 
-        tvPeakHour.setText(metrics.peakActivityMinsAgo);
+        tvPeakHour.setText(metrics.getPeakActivityMinsAgo());
 
-        updateBarChart(metrics.hourlyTrafficTrend);
-        updateLineChart(metrics.last5MinutesTrend);
-        updatePieChart(categoryPieChart, metrics.categoryDistribution);
-        updatePieChart(sourcePieChart, metrics.deviceSourceDistribution);
+        updateBarChart(metrics.getHourlyTrafficTrend());
+        updateLineChart(metrics.getLast5MinutesTrend());
+        updatePieChart(categoryPieChart, metrics.getCategoryDistribution());
+        updatePieChart(sourcePieChart, metrics.getDeviceSourceDistribution());
     }
 
     private void updateBarChart(Map<Integer, Integer> hourlyTrend) {
@@ -396,10 +401,8 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Start tracking first to sync data.", Toast.LENGTH_SHORT).show();
             return;
         }
-        Intent intent = new Intent(this, com.example.billboardanalytics.service.ScannerService.class);
-        intent.setAction(com.example.billboardanalytics.service.ScannerService.ACTION_TRIGGER_SYNC);
-        startForegroundService(intent);
-        Toast.makeText(this, "Immediate Cloud Sync Triggered!", Toast.LENGTH_SHORT).show();
+        FootfallAnalyticsSDK.getInstance().triggerSync();
+        Toast.makeText(this, "Cloud sync triggered!", Toast.LENGTH_SHORT).show();
     }
 
     @Override

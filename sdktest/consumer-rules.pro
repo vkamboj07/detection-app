@@ -3,6 +3,7 @@
 -keep class com.footfallanalytics.sdk.SDKConfig { *; }
 -keep class com.footfallanalytics.sdk.SDKConfig$Builder { *; }
 -keep class com.footfallanalytics.sdk.FootfallListener { *; }
+-keep class com.footfallanalytics.sdk.service.** { *; }
 
 # Keep SDK model classes (returned by public API)
 -keep class com.footfallanalytics.sdk.model.FootfallMetrics { *; }

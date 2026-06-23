@@ -8,10 +8,10 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.example.billboardanalytics.data.AnalyticsDao;
-import com.example.billboardanalytics.data.AppDatabase;
-import com.example.billboardanalytics.engine.AnalyticsEngine;
-import com.example.billboardanalytics.engine.FootfallMetrics;
+import com.footfallanalytics.sdk.data.AnalyticsDao;
+import com.footfallanalytics.sdk.data.AppDatabase;
+import com.footfallanalytics.sdk.engine.AnalyticsEngine;
+import com.footfallanalytics.sdk.model.FootfallMetrics;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

@@ -12,7 +12,7 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.billboardanalytics.R;
-import com.example.billboardanalytics.util.DeviceCategory;
+import com.footfallanalytics.sdk.util.DeviceCategory;
 
 import java.util.ArrayList;
 import java.util.List;

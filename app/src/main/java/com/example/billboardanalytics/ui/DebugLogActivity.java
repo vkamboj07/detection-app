@@ -8,10 +8,10 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.billboardanalytics.R;
-import com.example.billboardanalytics.data.AppDatabase;
-import com.example.billboardanalytics.data.DeviceEntity;
-import com.example.billboardanalytics.data.ObservationEntity;
-import com.example.billboardanalytics.data.SessionEntity;
+import com.footfallanalytics.sdk.data.AppDatabase;
+import com.footfallanalytics.sdk.data.DeviceEntity;
+import com.footfallanalytics.sdk.data.ObservationEntity;
+import com.footfallanalytics.sdk.data.SessionEntity;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
