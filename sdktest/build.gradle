@@ -31,9 +31,12 @@ dependencies {
 
     // Gson for JSON serialization
     api 'com.google.code.gson:gson:2.14.0'
+<<<<<<< HEAD
 
     // Core for NotificationCompat (foreground service)
     api 'androidx.core:core:1.15.0'
+=======
+>>>>>>> f66b8b60d14ff93809ee8c84b55c97841a73e51b
 
     // Unit testing
     testImplementation 'junit:junit:4.13.2'
